@@ -1,6 +1,6 @@
 import sys
 import numpy
-from itertools import (takewhile,repeat)
+from itertools import (takewhile, repeat)
 import gzip
 
 
