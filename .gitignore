@@ -2,3 +2,5 @@
 data/*
 Scripts/Logs/*
 .idea/*
+*.gz
+*.cache
