@@ -31,11 +31,11 @@ do
 
                 vw -d ${VW_PREFIX}_validate.gz -c --compressed -P 500000 --holdout_off -i Logs/${method}/${method}_${P}_${L}_${Lambda}.1 -t --rank_all -p Logs/${method}/${method}_${P}_${L}_${Lambda}.1.val.txt &> Logs/${method}/${method}_${P}_${L}_${Lambda}.1.val.log
 
-                python scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.1.val.txt ${VW_PREFIX}_validate.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.1.val.scores
+                python3 scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.1.val.txt ${VW_PREFIX}_validate.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.1.val.scores
 
                 vw -d ${VW_PREFIX}_test.gz -c --compressed -P 500000 --holdout_off -i Logs/${method}/${method}_${P}_${L}_${Lambda}.1 -t --rank_all -p Logs/${method}/${method}_${P}_${L}_${Lambda}.1.test.txt &> Logs/${method}/${method}_${P}_${L}_${Lambda}.1.test.log
 
-                python scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.1.test.txt ${VW_PREFIX}_test.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.1.test.scores
+                python3 scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.1.test.txt ${VW_PREFIX}_test.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.1.test.scores
 
                 rm Logs/${method}/${method}_${P}_${L}_${Lambda}.1.test.txt
                 rm Logs/${method}/${method}_${P}_${L}_${Lambda}.1.val.txt
@@ -60,11 +60,11 @@ do
 
                     vw --random_seed 387 -d ${VW_PREFIX}_validate.gz -c --compressed -P 500000 --holdout_off -i Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch} -t --rank_all -p Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.val.txt &> Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.val.log
 
-                python scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.val.txt ${VW_PREFIX}_validate.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.${epoch}.val.scores
+                python3 scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.val.txt ${VW_PREFIX}_validate.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.${epoch}.val.scores
 
                 vw --random_seed 387 -d ${VW_PREFIX}_test.gz -c --compressed -P 500000 --holdout_off -i Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch} -t --rank_all -p Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.test.txt &> Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.test.log
 
-                python scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.test.txt ${VW_PREFIX}_test.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.${epoch}.test.scores
+                python3 scorer.py Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.test.txt ${VW_PREFIX}_test.gz ${NEG_LOSS} &> Logs/${method}_${P}_${L}_${Lambda}.${epoch}.test.scores
 
                 #Cleanup -- to avoid massive disk footprint
                 rm Logs/${method}/${method}_${P}_${L}_${Lambda}.${epoch}.test.txt
