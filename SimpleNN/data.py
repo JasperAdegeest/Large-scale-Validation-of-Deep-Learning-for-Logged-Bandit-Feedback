@@ -1,5 +1,6 @@
 import argparse
 import torch
+from SimpleNN.config import Config
 
 from tqdm import tqdm
 from collections import defaultdict
@@ -9,19 +10,20 @@ from torch.utils.data import Dataset
 class Sample():
     """Sample representing banner with one slot."""
     def __init__(self):
+        self.config = Config()
+
         # Start with empty product list
         self.products = []
 
         # All should be initialized by functions of the sample
         self.summary = None
-        self.summary_vec = None
         self.product_vecs = None
         self.click = None
         self.propensity = None
 
     def done(self):
         # Summary vec will be reused for all product vecs
-        self.summary_vec = self.features_to_vector(self.summary.split("|")[-1])
+        summary = self.summary.split("|")[-1]
 
         # Extract click and propensity from first product
         product_showed = self.products[0]
@@ -29,13 +31,12 @@ class Sample():
         [_, self.click, self.propensity] = score.split(":")
         self.click = float(self.click)
         self.propensity = float(self.propensity)
-        first_product_vector = self.features_to_vector(features)
+        first_product_vector = self.features_to_vector(summary + ' ' + features)
 
         # Extract feature vecs for every other product as well
         self.product_vecs = [first_product_vector]
         for p in self.products[1:]:
-            vec = self.features_to_vector(p.split("|")[-1])
-            vec = [max(s, p) for s, p in zip(self.summary_vec, vec)]
+            vec = self.features_to_vector(summary + ' ' + p.split("|")[-1])
             self.product_vecs.append(vec)
 
     def features_to_vector(self, features):
@@ -48,7 +49,9 @@ class Sample():
             if "_" in feature:
                 [feature_name, value] = feature.split("_")
                 if ":" in value: value = value.split(":")[0]
-                vector[int(feature_name)-1] = int(value)
+                category_index = self.config.get_category_index(int(feature_name), int(value))
+                if category_index is not None:
+                    vector[int(feature_name)-1] = category_index
         return vector
 
     def __str__(self):
@@ -65,7 +68,7 @@ class BatchIterator():
 
     def __iter__(self):
         for sample in self.dataset:
-            yield torch.FloatTensor(sample.product_vecs), sample.click, sample.propensity
+            yield torch.Tensor(sample.product_vecs).float(), sample.click, sample.propensity
 
 
 class CriteoDataset(Dataset):
@@ -78,7 +81,6 @@ class CriteoDataset(Dataset):
             stop_idx (int): only process this many lines from the file.
         """
         self.samples = []
-        #self.extract_features(filename)
         self.load(filename, stop_idx)
 
     def load(self, filename, stop_idx):
@@ -100,35 +102,6 @@ class CriteoDataset(Dataset):
                 # Product line
                 else:
                     sample.products.append(line)
-
-    def extract_features(self, filename, stop_idx):
-        numerical_features = set()
-        categorical_features = defaultdict(set)
-
-        with open(filename) as f:
-            for i, line in enumerate(f):
-                line = line.strip()
-                if i == stop_idx: break
-
-                # Line break
-                if not line:
-                    continue
-                features = line.split("|")[-1].split()
-                for f in features:
-                    # Numerical feature
-                    if ":" in f and not "_" in f:
-                        [feature_name, value] = f.split(":")
-                        numerical_features.add(int(feature_name))
-
-                    # Categorical featuer
-                    if "_" in f:
-                        [feature_name, value] = f.split("_")
-                        if ":" in value: value = value.split(":")[0]
-                        categorical_features[int(feature_name)].add(int(value))
-        print(len(numerical_features))
-        x = len(numerical_features)
-        for f in categorical_features:
-            print(f, len(categorical_features[f]))
 
     def __len__(self):
         return len(self.samples)

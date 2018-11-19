@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=10)
     args = parser.parse_args()
     train = CriteoDataset(args.train, 5000)
-    model = SimpleNN(35, 100)
+    model = SimpleNN(20, 100)
     optimizer = torch.optim.Adam(model.parameters())
 
     epoch_losses = []
