@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument('--lamb', type=float, default=0.5)
     parser.add_argument('--epochs', type=int, default=10)
     args = parser.parse_args()
-    train = CriteoDataset(args.train, 5000)
+    train = CriteoDataset(args.train, 50)
     model = SimpleNN(35, 100)
     optimizer = torch.optim.Adam(model.parameters())
 
