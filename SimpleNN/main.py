@@ -7,9 +7,9 @@ from data import CriteoDataset, BatchIterator
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--train', required=True)
-    parser.add_argument('--lamb', type=float, default=0.5)
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--train', default='../data/vw_compressed_train')
+    parser.add_argument('--lamb', type=float, default=0.8)
+    parser.add_argument('--epochs', type=int, default=30)
     args = parser.parse_args()
     train = CriteoDataset(args.train, 5000)
     model = SimpleNN(20, 100)
