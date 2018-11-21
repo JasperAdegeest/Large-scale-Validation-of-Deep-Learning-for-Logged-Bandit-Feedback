@@ -1,8 +1,5 @@
 from torch import nn
 import torch
-import numpy as np
-from SimpleNN.config import Config
-
 
 class SimpleNN(nn.Module):
     def __init__(self, embedding_size, hidden_size, feature_dict):

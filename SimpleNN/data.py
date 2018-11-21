@@ -2,9 +2,6 @@ import argparse
 import torch
 import json
 
-from SimpleNN.config import Config
-from pprint import pprint
-from tqdm import tqdm
 from collections import defaultdict
 from torch.utils.data import Dataset
 
