@@ -40,10 +40,12 @@ def run_test_set(model, test_set):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--train', default='../data/vw_compressed_train')
+    parser.add_argument('--test', default='../data/vw_compressed_test')
     parser.add_argument('--lamb', type=float, default=0.8)
     parser.add_argument('--epochs', type=int, default=20)
     args = parser.parse_args()
-    train = CriteoDataset(args.train, 50000)
+    train_set = CriteoDataset(args.train, 5000)
+    test_set = CriteoDataset(args.test, 5000)
     model = SimpleNN(20, 100)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -51,7 +53,7 @@ if __name__ == "__main__":
     for i in range(args.epochs):
         print("Starting epoch {}".format(i))
         losses = []
-        for sample, click, propensity in BatchIterator(train):
+        for sample, click, propensity in BatchIterator(train_set):
             optimizer.zero_grad()
             output = model(sample)
             loss = (click - args.lamb) * (output[0] / propensity)
@@ -61,4 +63,4 @@ if __name__ == "__main__":
         epoch_losses.append(sum(losses) / len(losses))
         print("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
-        run_test_set(model, train)
+        run_test_set(model, test_set)
