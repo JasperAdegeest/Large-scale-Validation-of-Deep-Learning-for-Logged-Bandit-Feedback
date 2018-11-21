@@ -5,6 +5,37 @@ from SimpleNN.model import SimpleNN
 from SimpleNN.data import CriteoDataset, BatchIterator
 
 
+def run_test_set(model, test_set):
+    model.eval()
+    with torch.no_grad():
+        R = []
+        C = []
+
+        for sample, click, propensity in BatchIterator(test_set):
+            output = model(sample)
+
+            # Calculate R
+            if click == 0.999:
+                o = 1.0
+            else:
+                o = float(numpy.random.choice([0, 10], p=[0.9, 0.1]))
+            R.append(click * (output[0] / propensity) * o)
+
+            # Calculate C
+            if click == 0.999:
+                o = 1
+            else:
+                o = float(numpy.random.choice([0, 10], p=[0.9, 0.1]))
+            C.append((output[0] / propensity) * o)
+
+        R = np.average(R) * 10**4
+        C = np.average(C)
+        R_div_C = R / C
+
+        print("\nTest results:")
+        print("R x 10^4: {}\t C: {}\t (R x 10^4) / C: {}\n".format(R, C, R_div_C))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--train', required=True)
@@ -34,3 +65,5 @@ if __name__ == "__main__":
             optimizer.step()
         epoch_losses.append(sum(losses) / len(losses))
         print("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
+
+        run_test_set(model, train)
