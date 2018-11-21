@@ -1,7 +1,9 @@
 import argparse
 import torch
-from SimpleNN.config import Config
+import json
 
+from SimpleNN.config import Config
+from pprint import pprint
 from tqdm import tqdm
 from collections import defaultdict
 from torch.utils.data import Dataset
@@ -9,11 +11,11 @@ from torch.utils.data import Dataset
 
 class Sample():
     """Sample representing banner with one slot."""
-    def __init__(self):
-        self.config = Config()
+    def __init__(self, feature_dict):
 
         # Start with empty product list
         self.products = []
+        self.feature_dict = feature_dict
 
         # All should be initialized by functions of the sample
         self.summary = None
@@ -49,7 +51,7 @@ class Sample():
             if "_" in feature:
                 [feature_name, value] = feature.split("_")
                 if ":" in value: value = value.split(":")[0]
-                category_index = self.config.get_category_index(int(feature_name), int(value))
+                category_index = self.get_category_index(int(feature_name), int(value))
                 if category_index is not None:
                     vector[int(feature_name)-1] = category_index
         return vector
@@ -61,26 +63,47 @@ class Sample():
             to_string += "---- {}\n".format(p)
         return to_string
 
+    def get_category_index(self, feature, category):
+        if str(category) in self.feature_dict[str(feature)]:
+            return self.feature_dict[str(feature)][str(category)]
+        else:
+            return None
+
 
 class BatchIterator():
-    def __init__(self, dataset):
+    def __init__(self, dataset, batch_size):
         self.dataset = dataset
+        self.sorted_per_pool_size = defaultdict(list)
+        for s in self.dataset:
+            self.sorted_per_pool_size[len(s.products)].append(s)
+        self.sorted_per_pool_size = dict(self.sorted_per_pool_size)
+        self.batch_size = batch_size
 
     def __iter__(self):
-        for sample in self.dataset:
-            yield torch.Tensor(sample.product_vecs).float(), sample.click, sample.propensity
+        for pool_size in self.sorted_per_pool_size:
+            data = self.sorted_per_pool_size[pool_size]
+            for i in range(0, len(data), self.batch_size):
+                batch = data[i:i+self.batch_size]
+                products = [sample.product_vecs for sample in batch]
+                products = torch.FloatTensor(products)
+                clicks = torch.FloatTensor([sample.click for sample in batch])
+                propensities = torch.FloatTensor([sample.propensity for sample in batch])
+                yield products, clicks, propensities
 
 
 class CriteoDataset(Dataset):
     """Criteo dataset."""
 
-    def __init__(self, filename, stop_idx=10000000):
+    def __init__(self, filename, features_config, stop_idx=10000000):
         """
         Args:
             filename (string): Path to the criteo dataset filename.
             stop_idx (int): only process this many lines from the file.
         """
         self.samples = []
+        with open(features_config) as f:
+            self.feature_dict = json.load(f)
+
         self.load(filename, stop_idx)
 
     def load(self, filename, stop_idx):
@@ -97,7 +120,7 @@ class CriteoDataset(Dataset):
                     if i != 0:
                         sample.done()
                         self.samples.append(sample)
-                    sample = Sample()
+                    sample = Sample(feature_dict=self.feature_dict)
                     sample.summary = line
                 # Product line
                 else:
