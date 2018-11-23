@@ -6,30 +6,53 @@ from SimpleNN.model import SimpleNN
 from SimpleNN.data import CriteoDataset, BatchIterator
 
 
-def run_test_set(model, test_set):
+def run_test_set(model, test_set, batch_size):
     model.eval()
     with torch.no_grad():
+        # THIS IS HOW I THINK IT MUST BE
+        # R = 0
+        # R_N = 0
+        # C = 0
+        # C_N = 0
+        #
+        # for sample, click, propensity in BatchIterator(test_set, batch_size):
+        #     output = model(sample)
+        #     current_batch_size = output.shape[0]
+        #     click = click.view(-1, 1)
+        #
+        #     clicked_tensor = torch.ones(current_batch_size, 1)
+        #     not_clicked_tensor = torch.ones(current_batch_size, 1) * 10
+        #     o = torch.where((click == 0.999), clicked_tensor, not_clicked_tensor)
+        #
+        #     # Calculate R
+        #     R += (click * (output[:, 0, 0] * propensity).view(-1, 1) * o).sum()
+        #     R_N += o.sum()
+        #
+        #     # Calculate C
+        #     C += ((output[:, 0, 0] * propensity).view(-1, 1) * o).sum()
+        #     C_N += o.sum()
+        #
+        # R = (R / R_N) * 10**4
+        # C = C / C_N
+        # R_div_C = R / C
+
+        # THIS GETS AN APPROPRIATE R
         R = []
         C = []
 
-        for sample, click, propensity in BatchIterator(test_set, 1):
+        for sample, click, propensity in BatchIterator(test_set, batch_size):
             output = model(sample)
+            click = click.view(-1, 1)
+
+            weight = (output[:, 0, 0] * propensity).view(-1, 1)
 
             # Calculate R
-            if click == 0.999:
-                o = 1.0
-            else:
-                o = float(np.random.choice([0, 10], p=[0.9, 0.1]))
-            R.append(click * (output[:, 0, 0] / propensity) * o)
+            R.extend(click * weight)
 
             # Calculate C
-            if click == 0.999:
-                o = 1
-            else:
-                o = float(np.random.choice([0, 10], p=[0.9, 0.1]))
-            C.append((output[:, 0, 0] / propensity) * o)
+            C.extend(weight)
 
-        R = np.average(R) * 10**4
+        R = np.average(R) * 10 ** 4
         C = np.average(C)
         R_div_C = R / C
 
@@ -44,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument('--lamb', type=float, default=0.5)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--stop_idx', type=int, default=50000)
+    parser.add_argument('--stop_idx', type=int, default=5000)
     parser.add_argument('--embedding_dim', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=100)
     parser.add_argument('--feature_dict', type=str, default='../data/features_to_keys.json')
@@ -57,7 +80,11 @@ if __name__ == "__main__":
     epoch_losses = []
     for i in range(args.epochs):
         print("Starting epoch {}".format(i))
+
         losses = []
+        run_test_set(model, test_set, args.batch_size)
+
+
         for sample, click, propensity in BatchIterator(train_set, args.batch_size):
             optimizer.zero_grad()
             output = model(sample)
@@ -69,4 +96,4 @@ if __name__ == "__main__":
         epoch_losses.append(sum(losses) / len(losses))
         print("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
-        run_test_set(model, test_set)
+        run_test_set(model, test_set, args.batch_size)
