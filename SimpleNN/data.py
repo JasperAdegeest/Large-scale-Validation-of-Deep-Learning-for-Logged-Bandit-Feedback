@@ -28,7 +28,7 @@ class Sample():
         product_showed = self.products[0]
         [score, features] = product_showed.split("|")
         [_, self.click, self.propensity] = score.split(":")
-        self.click = 0 if round(float(self.click)) == 1 else 1
+        self.click = 1 if round(float(self.click)) == 1 else 0
         self.propensity = float(self.propensity)
         first_product_vector = self.features_to_vector(summary + ' ' + features)
 
