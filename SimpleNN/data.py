@@ -28,7 +28,7 @@ class Sample():
         product_showed = self.products[0]
         [score, features] = product_showed.split("|")
         [_, self.click, self.propensity] = score.split(":")
-        self.click = 1 if round(float(self.click)) == 1 else 0
+        self.click = round(float(self.click))
         self.propensity = float(self.propensity)
         first_product_vector = self.features_to_vector(summary + ' ' + features)
 
@@ -68,13 +68,14 @@ class Sample():
 
 
 class BatchIterator():
-    def __init__(self, dataset, batch_size):
+    def __init__(self, dataset, batch_size, enable_cuda):
         self.dataset = dataset
         self.sorted_per_pool_size = defaultdict(list)
         for s in self.dataset:
             self.sorted_per_pool_size[len(s.products)].append(s)
         self.sorted_per_pool_size = dict(self.sorted_per_pool_size)
         self.batch_size = batch_size
+        self.enable_cuda = enable_cuda
 
     def __iter__(self):
         for pool_size in self.sorted_per_pool_size:
@@ -85,6 +86,10 @@ class BatchIterator():
                 products = torch.FloatTensor(products)
                 clicks = torch.FloatTensor([sample.click for sample in batch])
                 propensities = torch.FloatTensor([sample.propensity for sample in batch])
+                if self.enable_cuda:
+                    products = products.cuda()
+                    clicks = clicks.cuda()
+                    propensities = propensities.cuda()
                 yield products, clicks, propensities
 
 
