@@ -68,7 +68,7 @@ if __name__ == "__main__":
         for sample, click, propensity in BatchIterator(train_set, args.batch_size):
             optimizer.zero_grad()
             output = model(sample)
-            loss = (click - args.lamb) * (output[:, 0, 0] / propensity)
+            loss = -1 * (click + args.lamb) * (output[:, 0, 0] / propensity)
             loss = torch.sum(loss)
             losses.append(loss.item())
             loss.backward()
