@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument('--lamb', type=float, default=0.8)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--stop_idx', type=int, default=50000)
+    parser.add_argument('--stop_idx', type=int, default=500000)
     parser.add_argument('--embedding_dim', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=100)
     parser.add_argument('--feature_dict', type=str, default='data/feature_to_keys.json')
