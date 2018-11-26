@@ -49,15 +49,23 @@ def run_test_set(model, test_set, batch_size, enable_cuda):
         print("\nTest results:")
         print("R x 10^4: {}\t C: {}\t (R x 10^4) / C: {}\n".format(R, C, R_div_C))
 
-def calc_loss(output_tensor, click_tensor, propensity_tensor):
+def calc_loss(output_tensor, click_tensor, propensity_tensor, enable_cuda):
     current_batch_size = output_tensor.shape[0]
     click_tensor = click_tensor.view(-1, 1)
+    clicked = torch.zeros(current_batch_size, 1)
+    not_clicked = torch.ones(current_batch_size, 1)
+    if enable_cuda:
+        clicked = clicked.cuda()
+        not_clicked = not_clicked.cuda()
     rectified_label = torch.where((click_tensor == 1),
-                                  torch.zeros(current_batch_size, 1),
-                                  torch.ones(current_batch_size, 1))
+                                  clicked,
+                                  not_clicked)
 
     clicked_tensor = torch.ones(current_batch_size, 1)
     not_clicked_tensor = torch.ones(current_batch_size, 1) * 10
+    if enable_cuda:
+        clicked_tensor = clicked.cuda()
+        not_clicked_tensor = not_clicked.cuda()
     o_tensor = torch.where((click == 1), not_clicked_tensor, clicked_tensor)
     N_tensor = o_tensor.sum()
 
@@ -72,15 +80,15 @@ if __name__ == "__main__":
     logging.basicConfig(level="INFO", format="%(asctime)s - %(levelname)s - %(message)s")
 
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--train', default='../data/vw_compressed_train')
-    parser.add_argument('--test', default='../data/vw_compressed_test')
+    parser.add_argument('--train', default='data/vw_compressed_train')
+    parser.add_argument('--test', default='data/vw_compressed_test')
     parser.add_argument('--lamb', type=float, default=0.8)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--stop_idx', type=int, default=50000)
     parser.add_argument('--embedding_dim', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=100)
-    parser.add_argument('--feature_dict', type=str, default='../data/features_to_keys.json')
+    parser.add_argument('--feature_dict', type=str, default='data/feature_to_keys.json')
     parser.add_argument('--cuda', action='store_true')
     args = parser.parse_args()
     logging.info("Loading training dataset.")
@@ -106,7 +114,7 @@ if __name__ == "__main__":
         for sample, click, propensity in BatchIterator(train_set, args.batch_size, args.cuda):
             optimizer.zero_grad()
             output = model(sample)
-            loss = calc_loss(output, click, propensity)
+            loss = calc_loss(output, click, propensity, args.cuda)
             losses.append(loss.item())
             loss.backward()
             optimizer.step()
