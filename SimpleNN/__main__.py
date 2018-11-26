@@ -57,15 +57,13 @@ def calc_loss(output_tensor, click_tensor, propensity_tensor, enable_cuda):
     if enable_cuda:
         clicked = clicked.cuda()
         not_clicked = not_clicked.cuda()
-    rectified_label = torch.where((click_tensor == 1),
-                                  clicked,
-                                  not_clicked)
+    rectified_label = torch.where((click_tensor == 1), clicked, not_clicked)
 
     clicked_tensor = torch.ones(current_batch_size, 1)
     not_clicked_tensor = torch.ones(current_batch_size, 1) * 10
     if enable_cuda:
-        clicked_tensor = clicked.cuda()
-        not_clicked_tensor = not_clicked.cuda()
+        clicked_tensor = clicked_tensor.cuda()
+        not_clicked_tensor = not_clicked_tensor.cuda()
     o_tensor = torch.where((click == 1), not_clicked_tensor, clicked_tensor)
     N_tensor = o_tensor.sum()
 
