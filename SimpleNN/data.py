@@ -1,6 +1,8 @@
 import argparse
 import torch
+import os
 import json
+import pickle
 
 from collections import defaultdict
 from torch.utils.data import Dataset
@@ -109,24 +111,33 @@ class CriteoDataset(Dataset):
         self.load(filename, stop_idx)
 
     def load(self, filename, stop_idx):
-        with open(filename) as f:
-            for i, line in enumerate(f):
-                line = line.strip()
-                if i >= stop_idx: break
+        pickle_file = '{}_{}.pickle'.format(filename, stop_idx)
 
-                # Line break
-                if not line:
-                    continue
-                # Start of new sample
-                elif "shared" in line:
-                    if i != 0:
-                        sample.done()
-                        self.samples.append(sample)
-                    sample = Sample(feature_dict=self.feature_dict)
-                    sample.summary = line
-                # Product line
-                else:
-                    sample.products.append(line)
+        if os.path.exists(pickle_file):
+            self.samples = pickle.load( open(pickle_file, "rb"))
+        else:
+            with open(filename) as f:
+                for i, line in enumerate(f):
+                    line = line.strip()
+                    if stop_idx != -1:
+                        if i >= stop_idx:
+                            break
+
+                    # Line break
+                    if not line:
+                        continue
+                    # Start of new sample
+                    elif "shared" in line:
+                        if i != 0:
+                            sample.done()
+                            self.samples.append(sample)
+                        sample = Sample(feature_dict=self.feature_dict)
+                        sample.summary = line
+                    # Product line
+                    else:
+                        sample.products.append(line)
+
+                pickle.dump(self.samples, open(pickle_file, 'wb'))
 
     def __len__(self):
         return len(self.samples)
