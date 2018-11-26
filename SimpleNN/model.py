@@ -2,7 +2,7 @@ from torch import nn
 import torch
 
 class SimpleNN(nn.Module):
-    def __init__(self, embedding_size, hidden_size, feature_dict):
+    def __init__(self, embedding_size, hidden_size, feature_dict, enable_cuda):
         super(SimpleNN, self).__init__()
 
         # Embedding layers
@@ -12,6 +12,10 @@ class SimpleNN(nn.Module):
             self.embedding_layers.append(
                 nn.Embedding(len(feature_dict[str(i)]), embedding_size)
             )
+
+        if enable_cuda:
+            for i in range(33):
+                self.embedding_layers[i] = self.embedding_layers[i].cuda()
 
         self.linear1 = nn.Linear(35 * embedding_size, hidden_size)
         self.relu = nn.ReLU()
