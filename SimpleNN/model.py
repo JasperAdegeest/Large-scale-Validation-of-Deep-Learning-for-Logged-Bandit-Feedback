@@ -1,9 +1,9 @@
 from torch import nn
 import torch
 
-class SimpleNN(nn.Module):
+class EmbedFFNN(nn.Module):
     def __init__(self, embedding_size, hidden_size, feature_dict, enable_cuda):
-        super(SimpleNN, self).__init__()
+        super(EmbedFFNN, self).__init__()
 
         # Embedding layers
         self.embedding_size = embedding_size
@@ -39,3 +39,16 @@ class SimpleNN(nn.Module):
         out = self.relu(out)
         out = self.linear2(out)
         return self.softmax(out)
+
+class HashFFNN(nn.Module):
+    def __init__(self, n_features):
+        super(HashFFNN, self).__init__()
+
+        # Embedding layers
+        self.linear = nn.Linear(n_features, 1)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, feature_vector):
+        score = self.linear(feature_vector)
+        probability = self.softmax(score)
+        return probability

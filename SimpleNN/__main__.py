@@ -3,7 +3,7 @@ import torch
 import logging
 
 import numpy as np
-from SimpleNN.model import SimpleNN
+from SimpleNN.model import EmbedFFNN, HashFFNN
 from SimpleNN.data import CriteoDataset, BatchIterator
 
 
@@ -84,17 +84,32 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--stop_idx', type=int, default=500000)
+    parser.add_argument('--start_idx', type=int, default=0)
     parser.add_argument('--embedding_dim', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=100)
     parser.add_argument('--feature_dict', type=str, default='data/feature_to_keys.json')
     parser.add_argument('--cuda', action='store_true')
+
+    # If hashing is used the model needs to be changed
+    parser.add_argument('--hashing', action='store_true')
+    parser.add_argument('--model', default="EmbedFFN", choices=["EmbedFFN", "HashFNN"])
+    parser.add_argument('--n_features', default=1024, type=int)
     args = parser.parse_args()
-    logging.info("Loading training dataset.")
-    train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx)
-    logging.info("Finished loading training dataset, loading testing dataset now.")
-    test_set = CriteoDataset(args.test, args.feature_dict, args.stop_idx)
-    logging.info("Finished loading testing datset, initialising model now.")
-    model = SimpleNN(args.embedding_dim, args.hidden_dim, train_set.feature_dict, args.cuda)
+
+    if not args.hashing:
+        logging.info("Loading training dataset.")
+        train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx, args.start_idx)
+        logging.info("Finished loading training dataset, loading testing dataset now.")
+        test_set = CriteoDataset(args.test, args.feature_dict, args.stop_idx, args.start_idx)
+        logging.info("Finished loading testing datset, initialising model now.")
+        model = EmbedFFNN(args.embedding_dim, args.hidden_dim, train_set.feature_dict, args.cuda)
+    else:
+        logging.info("Loading training dataset.")
+        train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx, args.start_idx, hashing=True)
+        logging.info("Finished loading training dataset, loading testing dataset now.")
+        test_set = CriteoDataset(args.test, args.feature_dict, 30000000+args.stop_idx, 30000000, hasher=train_set.hasher, hashing=True, n_features=args.n_features)
+        logging.info("Finished loading testing datset, initialising model now.")
+        model = HashFFNN(args.n_features)        
 
     if args.cuda and torch.cuda.is_available():
         model.cuda()
