@@ -178,10 +178,3 @@ class CriteoDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.samples[idx]
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--train', required=True)
-    args = parser.parse_args()
-    train = CriteoDataset(args.train, 500000)
