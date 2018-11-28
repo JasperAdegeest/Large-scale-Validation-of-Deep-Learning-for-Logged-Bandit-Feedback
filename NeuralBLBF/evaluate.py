@@ -25,5 +25,5 @@ def run_test_set(model, test_set, batch_size, enable_cuda, hasher):
         C = C / N
         R_div_C = R / C
 
-        print("\nTest results:")
-        print("R x 10^4: {}\t C: {}\t (R x 10^4) / C: {}\n".format(R, C, R_div_C))
+        logging.info("\nTest results:")
+        logging.info("R x 10^4: {}\t C: {}\t (R x 10^4) / C: {}\n".format(R, C, R_div_C))
