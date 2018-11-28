@@ -45,7 +45,7 @@ class HashFFNN(nn.Module):
         super(HashFFNN, self).__init__()
 
         # Embedding layers
-        self.linear = nn.Linear(n_features, 1)
+        self.linear = nn.Linear(n_features, 1,  bias=False)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, feature_vector):
