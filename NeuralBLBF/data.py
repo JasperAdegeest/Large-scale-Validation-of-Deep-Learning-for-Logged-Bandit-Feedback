@@ -97,11 +97,10 @@ class BatchIterator():
         self.sorted_per_pool_size = dict(self.sorted_per_pool_size)
         self.batch_size = batch_size
         self.enable_cuda = enable_cuda
-        if sparse:
-            self.sparse = sparse
+        self.sparse = sparse
+        if sparse:    
             self.features_to_keys = features_to_keys
             self.max_idx = sum([len(features_to_keys[f]) for f in features_to_keys])
-            print(self.max_idx)
 
     def __iter__(self):
         for pool_size in self.sorted_per_pool_size:
