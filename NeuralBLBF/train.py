@@ -13,16 +13,17 @@ def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, enable_cuda)
     R_hat = (click_tensor - lamb) * (output_tensor[:, 0, 0] / propensity_tensor)
     return torch.sum(R_hat) / torch.sum(N_hat)
 
-def train(model, optimizer, train_set, test_set, batch_size, enable_cuda, epochs, lamb, hasher=None):
+def train(model, optimizer, train_set, test_set, batch_size, enable_cuda, epochs, lamb, sparse, feature_dict):
     epoch_losses = []
     logging.info("Initialized dataset")
-    run_test_set(model, test_set, batch_size, enable_cuda, hasher)
+    run_test_set(model, test_set, batch_size, enable_cuda, sparse, feature_dict)
 
     for i in range(epochs):
         logging.info("Starting epoch {}".format(i))
 
         losses = []
-        for sample, click, propensity in tqdm(BatchIterator(train_set, batch_size, enable_cuda, hasher)):
+        for j, (sample, click, propensity) in enumerate(BatchIterator(train_set, batch_size, enable_cuda, sparse, feature_dict)):
+            if j % 10000 == 0: logging.info("Epoch {}, Step {}".format(i, j))
             optimizer.zero_grad()
             output = model(sample)
             loss = calc_loss(output, click, propensity, lamb, enable_cuda)
@@ -32,7 +33,7 @@ def train(model, optimizer, train_set, test_set, batch_size, enable_cuda, epochs
         epoch_losses.append(sum(losses) / len(losses))
         logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
-        run_test_set(model, test_set, batch_size, enable_cuda, hasher)
+        run_test_set(model, test_set, batch_size, enable_cuda, sparse, feature_dict)
 
 ############ BIN ################
 

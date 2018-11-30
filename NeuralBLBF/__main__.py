@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from tqdm import tqdm 
 from NeuralBLBF.train import train
-from NeuralBLBF.model import EmbedFFNN, HashFFNN
+from NeuralBLBF.model import TinyEmbedFFNN, SmallEmbedFFNN, HashFFNN
 from NeuralBLBF.data import CriteoDataset, BatchIterator
 from sklearn.feature_extraction import FeatureHasher
 
@@ -25,33 +25,33 @@ if __name__ == "__main__":
     parser.add_argument('--hidden_dim', type=int, default=100)
     parser.add_argument('--feature_dict', type=str, default='data/feature_to_keys.json')
     parser.add_argument('--cuda', action='store_true')
-    parser.add_argument('--learning_rate', default=0.0001)
+    parser.add_argument('--learning_rate', default=0.00005)
 
-    # If hashing is used the model needs to be changed
-    parser.add_argument('--hashing', action='store_true')
-    parser.add_argument('--model', default="EmbedFFN", choices=["EmbedFFN", "HashFNN"])
-    parser.add_argument('--n_features', default=2**12, type=int)
+    # If sparse is used the model needs to be changed
+    parser.add_argument('--sparse', action='store_true')
+    parser.add_argument('--model', default="TinyEmbedFFNN", choices=["TinyEmbedFFNN", "SmallEmbedFFNN", "HashFFNN"])
     args = parser.parse_args()
 
-    if not args.hashing:
-        hasher = None
-        logging.info("Loading training dataset.")
-        train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx, args.start_idx)
-        logging.info("Finished loading training dataset, loading testing dataset now.")
-        test_set = CriteoDataset(args.test, args.feature_dict, args.stop_idx, args.start_idx)
-        logging.info("Finished loading testing datset, initialising model now.")
-        model = EmbedFFNN(args.embedding_dim, args.hidden_dim, train_set.feature_dict, args.cuda)
+    logging.info("Loading training dataset.")
+    train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx, args.start_idx, args.sparse)
+    logging.info("Finished loading training dataset, loading testing dataset now.")
+    test_set = CriteoDataset(args.test, args.feature_dict, args.stop_idx, args.start_idx, args.sparse)
+    logging.info("Finished loading testing datset, initialising model now.")
+    if args.model == "TinyEmbedFFNN" and not args.sparse:
+        model = TinyEmbedFFNN(args.embedding_dim, args.hidden_dim, train_set.feature_dict, args.cuda)
+    elif args.model == "HashFFNN" or args.sparse:
+        
+        i = 0
+        for k in train_set.feature_dict:
+            for v in train_set.feature_dict[k]:
+                train_set.feature_dict[k][v] = i
+                i += 1
+        model = HashFFNN(i + 2)
     else:
-        hasher = FeatureHasher(n_features=args.n_features, input_type="dict")
-        logging.info("Loading training dataset.")
-        train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx, args.start_idx, hashing=True)
-        logging.info("Finished loading training dataset, loading testing dataset now.")
-        test_set = CriteoDataset(args.test, args.feature_dict, 30000000+args.stop_idx, 30000000, hashing=True)
-        logging.info("Finished loading testing datset, initialising model now.")
-        model = HashFFNN(args.n_features)        
+        model = SmallEmbedFFNN(args.embedding_dim, args.hidden_dim, train_set.feature_dict, args.cuda)
 
     if args.cuda and torch.cuda.is_available():
         model.cuda()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-    train(model, optimizer, train_set, test_set, args.batch_size, args.cuda, args.epochs, args.lamb, hasher)
+    train(model, optimizer, train_set, test_set, args.batch_size, args.cuda, args.epochs, args.lamb, args.sparse, train_set.feature_dict)

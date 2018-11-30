@@ -4,6 +4,8 @@ import os
 import random
 import json
 import pickle
+import logging
+import numpy as np
 
 from tqdm import tqdm
 from torch.utils.data import Dataset
@@ -65,13 +67,11 @@ class Sample():
     def features_to_vector_hashed(self, features):
         feature_dict = dict()
         for feature in features.split():
-            if ":" in feature and not "_" in feature:
-                [feature_name, value] = feature.split(":")
-                feature_dict[feature_name] = int(value)
-            if "_" in feature:
-                [feature_name, value] = feature.split("_")
-                if ":" in value: value = value.split(":")[0]
-                feature_dict[feature_name] = value
+            if ":" in feature:
+                [feature, value] = feature.split(":")
+                feature_dict[feature] = int(value)
+            else:
+                feature_dict[feature] = 1
         return feature_dict
 
     def __str__(self):
@@ -89,7 +89,7 @@ class Sample():
 
 
 class BatchIterator():
-    def __init__(self, dataset, batch_size, enable_cuda, hasher=None):
+    def __init__(self, dataset, batch_size, enable_cuda, sparse=False, features_to_keys=None):
         self.dataset = dataset
         self.sorted_per_pool_size = defaultdict(list)
         for s in self.dataset:
@@ -97,17 +97,22 @@ class BatchIterator():
         self.sorted_per_pool_size = dict(self.sorted_per_pool_size)
         self.batch_size = batch_size
         self.enable_cuda = enable_cuda
-        self.hasher = hasher
+        if sparse:
+            self.sparse = sparse
+            self.features_to_keys = features_to_keys
+            self.max_idx = sum([len(features_to_keys[f]) for f in features_to_keys])
+            print(self.max_idx)
 
     def __iter__(self):
         for pool_size in self.sorted_per_pool_size:
             data = self.sorted_per_pool_size[pool_size]
             random.shuffle(data)
+            #logging.info("{} {}".format(pool_size, len(data)))
             for i in range(0, len(data), self.batch_size):
                 batch = data[i:i+self.batch_size]
                 products = [sample.product_vecs for sample in batch]
-                if self.hasher is not None:
-                    products = self.hash(products)
+                if self.sparse:
+                    products = self.to_sparse(products)
                 products = torch.FloatTensor(products)
                 clicks = torch.FloatTensor([sample.click for sample in batch])
                 propensities = torch.FloatTensor([sample.propensity for sample in batch])
@@ -117,11 +122,18 @@ class BatchIterator():
                     propensities = propensities.cuda()
                 yield products, clicks, propensities
 
-    def hash(self, batch):
+    def to_sparse(self, batch):
+        batch_sparse = np.zeros((len(batch), len(batch[0]), 2 + self.max_idx))
         for i, product_vecs in enumerate(batch):
-            product_vecs = self.hasher.transform(product_vecs).toarray()
-            batch[i] = product_vecs
-        return batch
+            for j, p in enumerate(product_vecs):
+                for k, v in p.items():
+                    if k == "1" or k == "2":
+                        batch_sparse[i, j, int(k)-1] = v
+                    else:
+                        [a, b] = k.split("_")
+                        if a in self.features_to_keys and b in self.features_to_keys[a]:
+                            batch_sparse[i, j, self.features_to_keys[a][b]+2] = v
+        return batch_sparse
 
 
 class CriteoDataset(Dataset):
@@ -139,11 +151,14 @@ class CriteoDataset(Dataset):
         self.hashing = hashing
         with open(features_config) as f:
             self.feature_dict = json.load(f)
-        self.load(filename, stop_idx, start_idx)
+        self.load(filename, stop_idx, start_idx, hashing)
 
 
-    def load(self, filename, stop_idx, start_idx):
-        pickle_file = '{}_{}.pickle'.format(filename, stop_idx)
+    def load(self, filename, stop_idx, start_idx, hashing):
+        if hashing:
+            pickle_file = '{}_{}_hashing.pickle'.format(filename, stop_idx)
+        else:
+            pickle_file = '{}_{}.pickle'.format(filename, stop_idx)            
         sample = None
 
         if os.path.exists(pickle_file):

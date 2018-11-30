@@ -7,14 +7,15 @@ from tqdm import tqdm
 from NeuralBLBF.data import BatchIterator
 
 
-def run_test_set(model, test_set, batch_size, enable_cuda, hasher):
+def run_test_set(model, test_set, batch_size, enable_cuda, sparse, feature_dict):
     model.eval()
     with torch.no_grad():
         R = 0
         C = 0
         N = 0
 
-        for sample, click, propensity in BatchIterator(test_set, batch_size, enable_cuda, hasher):
+        for i, (sample, click, propensity) in enumerate(BatchIterator(test_set, batch_size, enable_cuda, sparse, feature_dict)):
+            if i % 10000 == 0: logging.info("Evaluating, step {}".format(i))
             output = model(sample)
             rectified_label = click.eq(0).float()
             N += torch.sum(click.eq(1) * 10 + click.eq(0)).float()
