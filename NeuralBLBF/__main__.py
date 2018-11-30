@@ -15,8 +15,8 @@ if __name__ == "__main__":
     logging.basicConfig(level="INFO", format="%(asctime)s - %(levelname)s - %(message)s")
 
     parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--train', default='data/vw_compressed_train')
-    parser.add_argument('--test', default='data/vw_compressed_test')
+    parser.add_argument('--train', default='../data/vw_compressed_train')
+    parser.add_argument('--test', default='../data/vw_compressed_test')
     parser.add_argument('--lamb', type=float, default=1)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=256)
@@ -24,7 +24,8 @@ if __name__ == "__main__":
     parser.add_argument('--start_idx', type=int, default=0)
     parser.add_argument('--embedding_dim', type=int, default=20)
     parser.add_argument('--hidden_dim', type=int, default=100)
-    parser.add_argument('--feature_dict', type=str, default='data/feature_to_keys.json')
+    parser.add_argument('--feature_dict', type=str, default='../data/feature_to_keys.json')
+    parser.add_argument('--save_model_path', type=str, default='../data/models')
     parser.add_argument('--cuda', action='store_true')
     parser.add_argument('--learning_rate', default=0.00005)
     parser.add_argument('--branch', default=3)
@@ -47,11 +48,14 @@ if __name__ == "__main__":
                 train_set.feature_dict[k][v] = i
                 i += 1
         model = HashFFNN(i + 2)
+        save_model_path = args.save_model_path + '/TinyEmbedFFNN_{}'
     else:
         model = SmallEmbedFFNN(args.embedding_dim, args.hidden_dim, feature_dict, args.cuda)
 
     if args.cuda and torch.cuda.is_available():
         model.cuda()
 
+    save_model_path = args.save_model_path + '/{}_{}_{}'.format(args.model, args.embedding_dim, args.hidden_dim)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-    train(model, args.train, args.test, args.stop_idx, args.start_idx, optimizer, args.batch_size, args.cuda, args.epochs, args.lamb, args.sparse, feature_dict, args.branch)
+    train(model, args.train, args.test, args.stop_idx, args.start_idx, optimizer, args.batch_size, args.cuda, args.epochs, args.lamb, args.sparse, feature_dict, args.branch, save_model_path)

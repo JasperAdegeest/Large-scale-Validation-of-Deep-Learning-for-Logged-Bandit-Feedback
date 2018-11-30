@@ -15,7 +15,7 @@ def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, enable_cuda)
     R_hat = (click_tensor - lamb) * (output_tensor[:, 0, 0] / propensity_tensor)
     return torch.sum(R_hat) / torch.sum(N_hat)
 
-def train(model, train_path, test_path, stop_idx, start_idx, optimizer, batch_size, enable_cuda, epochs, lamb, sparse, feature_dict, branch):
+def train(model, train_path, test_path, stop_idx, start_idx, optimizer, batch_size, enable_cuda, epochs, lamb, sparse, feature_dict, branch, save_model_path):
     epoch_losses = []
     logging.info("Initialized dataset")
     run_test_set(model, test_path, stop_idx, start_idx, branch, batch_size, enable_cuda, sparse, feature_dict)
@@ -43,10 +43,12 @@ def train(model, train_path, test_path, stop_idx, start_idx, optimizer, batch_si
                 losses.append(loss.item())
                 loss.backward()
                 optimizer.step()
+
             epoch_losses.append(sum(losses) / len(losses))
             logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
         run_test_set(model, test_path, stop_idx, start_idx, branch, batch_size, enable_cuda, sparse, feature_dict)
+        torch.save(model.state_dict(), save_model_path + '_{}.pt'.format(i))
 
 ############ BIN ################
 
