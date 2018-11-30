@@ -138,8 +138,8 @@ class BatchIterator():
 class CriteoDataset(Dataset):
     """Criteo dataset."""
 
-    def __init__(self, filename, features_config, stop_idx=10000000, start_idx=0,
-                 hashing=False):
+    def __init__(self, filename, features_dict, stop_idx=10000000, start_idx=0,
+                 hashing=False, pickle_id=0, branching_factor=3):
         """
         Args:
             filename (string): Path to the criteo dataset filename.
@@ -148,18 +148,18 @@ class CriteoDataset(Dataset):
 
         self.samples = []
         self.hashing = hashing
-        with open(features_config) as f:
-            self.feature_dict = json.load(f)
-        self.load(filename, stop_idx, start_idx, hashing)
+        self.feature_dict = features_dict
+        self.load(filename, stop_idx, start_idx, hashing, pickle_id, branching_factor)
 
 
-    def load(self, filename, stop_idx, start_idx, hashing):
+    def load(self, filename, stop_idx, start_idx, hashing, pickle_id, branching_factor=3):
         if hashing:
-            pickle_file = '{}_{}_hashing.pickle'.format(filename, stop_idx)
+            pickle_file = '{}_{}_{}_{}_hashing.pickle'.format(filename, stop_idx, pickle_id, branching_factor)
         else:
-            pickle_file = '{}_{}.pickle'.format(filename, stop_idx)            
-        sample = None
+            pickle_file = '{}_{}_{}_{}.pickle'.format(filename, stop_idx, pickle_id, branching_factor)
 
+        sample = None
+        skipped = 0
         if os.path.exists(pickle_file):
             self.samples = pickle.load(open(pickle_file, "rb"))
         else:
@@ -175,15 +175,21 @@ class CriteoDataset(Dataset):
 
                     # Start of new sample
                     elif "shared" in line:
-                        if sample is not None:
-                            sample.done(self.hashing)
-                            self.samples.append(sample)
-                        sample = Sample(feature_dict=self.feature_dict)
-                        sample.summary = line
+                        if skipped == pickle_id:
+                            if sample is not None:
+                                sample.done(self.hashing)
+                                self.samples.append(sample)
+                            sample = Sample(feature_dict=self.feature_dict)
+                            sample.summary = line
+
+                        skipped += 1
+                        skipped = skipped % branching_factor
+
                     # Product line
                     else:
                         if sample is not None:
                             sample.products.append(line)
+
                 # Save for usage later
                 pickle.dump(self.samples, open(pickle_file, 'wb'))
 

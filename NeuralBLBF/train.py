@@ -2,10 +2,12 @@ import torch
 import logging
 
 import numpy as np
-from tqdm import tqdm 
+from tqdm import tqdm
+
+from NeuralBLBF.data import CriteoDataset, BatchIterator
+
 
 from NeuralBLBF.evaluate import run_test_set
-from NeuralBLBF.data import BatchIterator
 
 
 def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, enable_cuda):
@@ -13,27 +15,38 @@ def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, enable_cuda)
     R_hat = (click_tensor - lamb) * (output_tensor[:, 0, 0] / propensity_tensor)
     return torch.sum(R_hat) / torch.sum(N_hat)
 
-def train(model, optimizer, train_set, test_set, batch_size, enable_cuda, epochs, lamb, sparse, feature_dict):
+def train(model, train_path, test_path, stop_idx, start_idx, optimizer, batch_size, enable_cuda, epochs, lamb, sparse, feature_dict, branch):
     epoch_losses = []
     logging.info("Initialized dataset")
-    run_test_set(model, test_set, batch_size, enable_cuda, sparse, feature_dict)
+    run_test_set(model, test_path, stop_idx, start_idx, branch, batch_size, enable_cuda, sparse, feature_dict)
+
+    # logging.info("Loading training dataset.")
+    #     train_set = CriteoDataset(args.train, args.feature_dict, args.stop_idx, args.start_idx, args.sparse)
+    #     logging.info("Finished loading training dataset, loading testing dataset now.")
+    #     test_set = CriteoDataset(args.test, args.feature_dict, args.stop_idx, args.start_idx, args.sparse)
+    #     logging.info("Finished loading testing datset, initialising model now.")
 
     for i in range(epochs):
         logging.info("Starting epoch {}".format(i))
 
         losses = []
-        for j, (sample, click, propensity) in enumerate(BatchIterator(train_set, batch_size, enable_cuda, sparse, feature_dict)):
-            if j % 10000 == 0: logging.info("Epoch {}, Step {}".format(i, j))
-            optimizer.zero_grad()
-            output = model(sample)
-            loss = calc_loss(output, click, propensity, lamb, enable_cuda)
-            losses.append(loss.item())
-            loss.backward()
-            optimizer.step()
-        epoch_losses.append(sum(losses) / len(losses))
-        logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
-        run_test_set(model, test_set, batch_size, enable_cuda, sparse, feature_dict)
+        for b in range(branch):
+            logging.info("Loading training dataset part {}.".format(b))
+            train_set = CriteoDataset(train_path, feature_dict, stop_idx, start_idx, sparse, b, branch)
+            iterator = BatchIterator(train_set, batch_size, enable_cuda, sparse, feature_dict)
+            for j, (sample, click, propensity) in enumerate(iterator):
+                if j % 10000 == 0: logging.info("Epoch {}, Step {}".format(i, j*(b+1)))
+                optimizer.zero_grad()
+                output = model(sample)
+                loss = calc_loss(output, click, propensity, lamb, enable_cuda)
+                losses.append(loss.item())
+                loss.backward()
+                optimizer.step()
+            epoch_losses.append(sum(losses) / len(losses))
+            logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
+
+        run_test_set(model, test_path, stop_idx, start_idx, branch, batch_size, enable_cuda, sparse, feature_dict)
 
 ############ BIN ################
 
