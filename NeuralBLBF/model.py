@@ -2,28 +2,29 @@ from torch import nn
 import torch
 
 class EmbedFFNN(nn.Module):
-    def __init__(self, embedding_size, feature_dict, enable_cuda):
+    def __init__(self, feature_dict, device, embedding_dim, enable_cuda):
         super(EmbedFFNN, self).__init__()
 
         # Embedding layers
-        self.embedding_size = embedding_size
+        self.embedding_dim = embedding_dim
         self.embedding_layers = []
         for i in range(3, 36):
             self.embedding_layers.append(
-                nn.Embedding(len(feature_dict[str(i)]), embedding_size)
+                nn.Embedding(len(feature_dict[str(i)]), embedding_dim)
             )
 
         if enable_cuda:
             for i in range(33):
-                self.embedding_layers[i] = self.embedding_layers[i].cuda()
+                self.embedding_layers[i] = self.embedding_layers[i].to(device)
 
     def forward(self, x):
         raise NotImplementedError()
 
+
 class SmallEmbedFFNN(EmbedFFNN):
-    def __init__(self, embedding_size, hidden_size, feature_dict, enable_cuda):
-        super(SmallEmbedFFNN, self).__init__(embedding_size, feature_dict, enable_cuda)
-        self.linear1 = nn.Linear(35 * embedding_size, 512)
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+        super(SmallEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
+        self.linear1 = nn.Linear(35 * embedding_dim, 512)
         self.linear2 = nn.Linear(512, 256)
         self.linear3 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
@@ -35,7 +36,7 @@ class SmallEmbedFFNN(EmbedFFNN):
         for i in range(35):
             if i < 2:
                 tensor = x[:, :, i].unsqueeze(2)
-                tensor = tensor.repeat(1, 1, self.embedding_size)
+                tensor = tensor.repeat(1, 1, self.embedding_dim)
                 input.append(tensor)
             else:
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
@@ -51,9 +52,9 @@ class SmallEmbedFFNN(EmbedFFNN):
 
 
 class TinyEmbedFFNN(EmbedFFNN):
-    def __init__(self, embedding_size, hidden_size, feature_dict, enable_cuda):
-        super(TinyEmbedFFNN, self).__init__(embedding_size, feature_dict, enable_cuda)
-        self.linear1 = nn.Linear(35 * embedding_size, 256)
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+        super(TinyEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
+        self.linear1 = nn.Linear(35 * embedding_dim, 256)
         self.linear2 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
@@ -64,7 +65,7 @@ class TinyEmbedFFNN(EmbedFFNN):
         for i in range(35):
             if i < 2:
                 tensor = x[:, :, i].unsqueeze(2)
-                tensor = tensor.repeat(1, 1, self.embedding_size)
+                tensor = tensor.repeat(1, 1, self.embedding_dim)
                 input.append(tensor)
             else:
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
@@ -81,10 +82,14 @@ class HashFFNN(nn.Module):
         super(HashFFNN, self).__init__()
 
         # Embedding layers
-        self.linear = nn.Linear(n_features, 1,  bias=False)
+        #self.linear = nn.Linear(n_features, 1,  bias=False)
+        weights = torch.FloatTensor(n_features, 1)
+        torch.nn.init.xavier_uniform_(weights)
+        self.linear = nn.Parameter(weights)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, feature_vector):
-        score = self.linear(feature_vector)
+        score = torch.spmm(feature_vector, self.linear)
+        score = score.unsqueeze(0)
         probability = self.softmax(score)
         return probability
