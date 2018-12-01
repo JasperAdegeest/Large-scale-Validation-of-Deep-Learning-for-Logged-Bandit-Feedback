@@ -3,7 +3,6 @@ import logging
 
 import numpy as np
 from tqdm import tqdm 
-
 from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
 
 

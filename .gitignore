@@ -4,3 +4,6 @@ Scripts/Logs/*
 .idea/*
 *.gz
 *.cache
+NeuralBLBF/data/*
+NeuralBLBF/data/feature_to_keys.json
+*.sh

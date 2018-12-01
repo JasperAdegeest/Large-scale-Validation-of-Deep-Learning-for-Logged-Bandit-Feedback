@@ -2,10 +2,16 @@ import torch
 import logging
 
 import numpy as np
-from tqdm import tqdm 
+from tqdm import tqdm
+
+from NeuralBLBF.data import CriteoDataset, BatchIterator
+
 
 from NeuralBLBF.evaluate import run_test_set
+<<<<<<< HEAD
 from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
+=======
+>>>>>>> bdaf984ae0521f1fb89dd55b87a7710154ec40a6
 
 
 def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, enable_cuda):
@@ -24,6 +30,7 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
         logging.info("Starting epoch {}".format(i))
 
         losses = []
+
         for j in range(0, stop_idx, step_size):
             logging.info("Loading training {} to {} out of {}.".format(j, j+step_size, stop_idx))
             train_set = CriteoDataset(train, feature_dict, j+step_size, j, sparse, save)
@@ -53,7 +60,6 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
 
         run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
     torch.save(model.state_dict(), save_model_path + '_{}.pt'.format(i))
-
 
 ############ BIN ################
 

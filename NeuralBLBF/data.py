@@ -174,6 +174,8 @@ class CriteoDataset(Dataset):
             pickle_file = '{}_{}-{}.pickle'.format(filename, start_idx, stop_idx)            
         sample = None
 
+        sample = None
+        skipped = 0
         if os.path.exists(pickle_file):
             self.samples = pickle.load(open(pickle_file, "rb"))
         else:
@@ -199,6 +201,7 @@ class CriteoDataset(Dataset):
                     else:
                         if sample is not None:
                             sample.products.append(line)
+
                 # Save for usage later
                 if self.save: pickle.dump(self.samples, open(pickle_file, 'wb'))
 
