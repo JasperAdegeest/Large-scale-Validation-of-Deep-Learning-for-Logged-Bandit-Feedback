@@ -16,17 +16,18 @@ def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, gamma, enabl
     R_hat = (click_tensor - lamb) * (output_tensor[:, 0, 0] / propensity_tensor)
 
     R_IPS = R_hat / N_hat
-    n = R_IPS.shape[0]
 
-    if n > 1:
-        Var_R_IPS = R_IPS.var()
-    else:
-        Var_R_IPS = 0
+    loss = torch.sum(R_IPS)
 
-    loss = torch.sum(R_IPS) + gamma * (Var_R_IPS / n) ** 0.5
+    if gamma != 0:
+        n = R_IPS.shape[0]
 
-    if len(loss.shape) == 1:
-        print('')
+        if n > 1:
+            Var_R_IPS = R_IPS.var()
+        else:
+            Var_R_IPS = 0
+
+        loss += gamma * (Var_R_IPS / n) ** 0.5
 
     return loss
 
