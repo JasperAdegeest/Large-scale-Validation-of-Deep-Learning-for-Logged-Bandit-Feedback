@@ -171,11 +171,9 @@ class CriteoDataset(Dataset):
         if sparse:
             pickle_file = '{}_{}-{}_sparse.pickle'.format(filename, start_idx, stop_idx)
         else:
-            pickle_file = '{}_{}-{}.pickle'.format(filename, start_idx, stop_idx)            
-        sample = None
+            pickle_file = '{}_{}-{}.pickle'.format(filename, start_idx, stop_idx)
 
         sample = None
-        skipped = 0
         if os.path.exists(pickle_file):
             self.samples = pickle.load(open(pickle_file, "rb"))
         else:

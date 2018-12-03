@@ -31,6 +31,8 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', default=0.00005)
     parser.add_argument('--save_model_path', type=str, default='data/models')
     parser.add_argument('--device_id', type=int, default=1)
+    parser.add_argument('--model_path', type=str, default=None)
+    parser.add_argument('--optimizer_path', type=str, default=None)
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')
@@ -60,9 +62,15 @@ if __name__ == "__main__":
         model = HashFFNN(len(feature_dict))
     else:
         model = SmallEmbedFFNN(feature_dict, device, **args)
-    if args["enable_cuda"] and torch.cuda.is_available(): model.to(device)
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
     optimizer = torch.optim.Adam(model.parameters(), lr=args["learning_rate"])
+    if args['model_path'] is not None and args['optimizer_path'] is not None:
+        checkpoint = torch.load(args['model_path'])
+        model.load_state_dict(checkpoint)
+        checkpoint = torch.load(args['optimizer_path'])
+        optimizer.load_state_dict(checkpoint)
+
+    if args["enable_cuda"] and torch.cuda.is_available(): model.to(device)
     logging.info("Initialized model and optimizer. Number of parameters: {}".format(n_params))
 
     train(model, optimizer, feature_dict, device, **args)

@@ -51,6 +51,39 @@ class SmallEmbedFFNN(EmbedFFNN):
         return self.softmax(out)
 
 
+class LargeEmbedFFNN(EmbedFFNN):
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+        super(LargeEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
+        self.linear1 = nn.Linear(35 * embedding_dim, 2048)
+        self.linear2 = nn.Linear(2048, 1024)
+        self.linear3 = nn.Linear(1024, 256)
+        self.linear4 = nn.Linear(256, 1)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        batch_dim, pool_size, _ = x.shape
+        input = []
+        for i in range(35):
+            if i < 2:
+                tensor = x[:, :, i].unsqueeze(2)
+                tensor = tensor.repeat(1, 1, self.embedding_dim)
+                input.append(tensor)
+            else:
+                tensor = self.embedding_layers[i-2](x[:, :, i].long())
+                input.append(tensor)
+
+        out = torch.cat(input, dim=2)
+        out = self.linear1(out)
+        out = self.relu(out)
+        out = self.linear2(out)
+        out = self.relu(out)
+        out = self.linear3(out)
+        out = self.relu(out)
+        out = self.linear4(out)
+        return self.softmax(out)
+
+
 class TinyEmbedFFNN(EmbedFFNN):
     def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
         super(TinyEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
@@ -76,6 +109,7 @@ class TinyEmbedFFNN(EmbedFFNN):
         out = self.relu(out)
         out = self.linear2(out)
         return self.softmax(out)
+
 
 class HashFFNN(nn.Module):
     def __init__(self, n_features):
