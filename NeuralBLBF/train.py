@@ -11,13 +11,27 @@ from NeuralBLBF.evaluate import run_test_set
 from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
 
 
-def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, enable_cuda):
+def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, gamma, enable_cuda):
     N_hat = torch.sum(click_tensor.eq(1) * 10 + click_tensor.eq(0)).float()
     R_hat = (click_tensor - lamb) * (output_tensor[:, 0, 0] / propensity_tensor)
-    return torch.sum(R_hat) / torch.sum(N_hat)
+
+    R_IPS = R_hat / N_hat
+    n = R_IPS.shape[0]
+
+    if n > 1:
+        Var_R_IPS = R_IPS.var()
+    else:
+        Var_R_IPS = 0
+
+    loss = torch.sum(R_IPS) + gamma * (Var_R_IPS / n) ** 0.5
+
+    if len(loss.shape) == 1:
+        print('')
+
+    return loss
 
 def train(model, optimizer, feature_dict, device, save_model_path, train, test,
-          batch_size, enable_cuda, epochs, lamb, sparse, stop_idx, step_size,
+          batch_size, enable_cuda, epochs, lamb, gamma, sparse, stop_idx, step_size,
           save, **kwargs):
     epoch_losses = []
     logging.info("Initialized dataset")
@@ -35,10 +49,12 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
                 for k, (sample, click, propensity) in enumerate(BatchIterator(train_set, batch_size, enable_cuda, sparse, device)):
                     optimizer.zero_grad()
                     output = model(sample)
-                    loss = calc_loss(output, click, propensity, lamb, enable_cuda)
+                    loss = calc_loss(output, click, propensity, lamb, gamma, enable_cuda)
                     losses.append(loss.item())
-                    loss.backward()
-                    optimizer.step()
+
+                    if loss.item() != 0:
+                        loss.backward()
+                        optimizer.step()
             else:
                 loss = 0
                 for k, (sample, click, propensity) in enumerate(BatchIterator(train_set, batch_size, enable_cuda, sparse, device)):
