@@ -36,7 +36,7 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
           save, **kwargs):
     epoch_losses = []
     logging.info("Initialized dataset")
-    run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
+    #run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
 
     for i in range(epochs):
         logging.info("Starting epoch {}".format(i))
