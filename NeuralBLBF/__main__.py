@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--device_id', type=int, default=1)
     parser.add_argument('--model_path', type=str, default=None)
     parser.add_argument('--optimizer_path', type=str, default=None)
+    parser.add_argument('--prop_dropout', action='store_true', help="Use propensity dropout [https://arxiv.org/pdf/1706.05966.pdf]")
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')

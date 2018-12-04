@@ -4,11 +4,11 @@ import logging
 import numpy as np
 from tqdm import tqdm
 
-from NeuralBLBF.data import CriteoDataset, BatchIterator
+from .data import CriteoDataset, BatchIterator
 
 
-from NeuralBLBF.evaluate import run_test_set
-from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
+from .evaluate import run_test_set
+from .data import BatchIterator, get_start_stop_idx, CriteoDataset
 
 
 def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, gamma, enable_cuda):
