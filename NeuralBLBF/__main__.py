@@ -5,7 +5,7 @@ import json
 import numpy as np
 
 from NeuralBLBF.train import train
-from NeuralBLBF.model import TinyEmbedFFNN, SmallEmbedFFNN, HashFFNN, LargeEmbedFFNN
+from NeuralBLBF.model import TinyEmbedFFNN, SmallEmbedFFNN, HashFFNN, LargeEmbedFFNN, CrossNetwork
 
 
 if __name__ == "__main__":
@@ -15,8 +15,6 @@ if __name__ == "__main__":
     parser.add_argument('--train', default='data/vw_compressed_train')
     parser.add_argument('--valid', default='data/vw_compressed_validate')
     parser.add_argument('--test', default='data/vw_compressed_train')
-    parser.add_argument('--train_parts', nargs='+')
-    parser.add_argument('--test_parts', nargs='+')
     parser.add_argument('--lamb', type=float, default=1)
     parser.add_argument('--gamma', type=float, default=0)
     parser.add_argument('--epochs', type=int, default=10)
@@ -37,7 +35,7 @@ if __name__ == "__main__":
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')
-    parser.add_argument('--model_type', default="TinyEmbedFFNN", choices=["TinyEmbedFFNN", "SmallEmbedFFNN", "HashFFNN", "LargeEmbedFFNN"])
+    parser.add_argument('--model_type', default="TinyEmbedFFNN", choices=["TinyEmbedFFNN", "SmallEmbedFFNN", "HashFFNN", "LargeEmbedFFNN", "CrossNetwork"])
     args = vars(parser.parse_args())
 
     if args['enable_cuda'] and torch.cuda.is_available():
@@ -62,8 +60,12 @@ if __name__ == "__main__":
         model = HashFFNN(len(feature_dict))
     elif args['model_type'] == "LargeEmbedFFNN":
         model = LargeEmbedFFNN(feature_dict, device, **args)
-    else:
+    elif args['model_type'] == "SmallEmbedFFNN":
         model = SmallEmbedFFNN(feature_dict, device, **args)
+    elif args['model_type'] == "CrossNetwork":
+        model = CrossNetwork(feature_dict, device, **args)
+    else:
+        raise NotImplementedError()
 
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
     optimizer = torch.optim.Adam(model.parameters(), lr=args["learning_rate"])

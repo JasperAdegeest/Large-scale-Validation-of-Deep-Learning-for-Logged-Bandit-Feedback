@@ -14,29 +14,15 @@ from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
 def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, gamma, enable_cuda):
     N_hat = torch.sum(click_tensor.eq(1) * 10 + click_tensor.eq(0)).float()
     R_hat = (click_tensor - lamb) * (output_tensor[:, 0, 0] / propensity_tensor)
+    return torch.sum(R_hat) / torch.sum(N_hat)
 
-    R_IPS = R_hat / N_hat
-
-    loss = torch.sum(R_IPS)
-
-    if gamma != 0:
-        n = R_IPS.shape[0]
-
-        if n > 1:
-            Var_R_IPS = R_IPS.var()
-        else:
-            Var_R_IPS = 0
-
-        loss += gamma * (Var_R_IPS / n) ** 0.5
-
-    return loss
 
 def train(model, optimizer, feature_dict, device, save_model_path, train, test,
           batch_size, enable_cuda, epochs, lamb, gamma, sparse, stop_idx, step_size,
           save, **kwargs):
     epoch_losses = []
     logging.info("Initialized dataset")
-    #run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
+    run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
 
     for i in range(epochs):
         logging.info("Starting epoch {}".format(i))

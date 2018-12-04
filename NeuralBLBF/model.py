@@ -127,3 +127,60 @@ class HashFFNN(nn.Module):
         score = score.unsqueeze(0)
         probability = self.softmax(score)
         return probability
+
+
+class CrossLayer(nn.Module):
+    def __init__(self, dim):
+        super(CrossLayer, self).__init__()
+        self.weight = nn.Linear(dim, 1, bias=False)
+        self.bias = nn.Linear(dim, 1).bias
+
+    def forward(self, x, x_0):
+        
+        correlated = self.weight(x)
+        correlated.transpose(1, 2)
+        x_0 = x_0.unsqueeze(3)
+        correlated = torch.einsum('ijkl,ijl->ijk', (x_0, correlated))
+        return correlated + self.bias + x
+
+class CrossNetwork(EmbedFFNN):
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+        super(CrossNetwork, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
+        
+        # Cross Network
+        self.cross_layer1 = CrossLayer(embedding_dim*35)
+        self.cross_layer2 = CrossLayer(embedding_dim*35)
+        self.cross_layer3 = CrossLayer(embedding_dim*35)
+
+        # Regular Deep Neural Network
+        self.dnn_layer1 = nn.Linear(35 * embedding_dim, 4096)
+        self.dnn_layer2 = nn.Linear(4096, 2048)
+        self.dnn_layer3 = nn.Linear(2048, 1024)
+        self.relu = nn.ReLU()
+        self.final_layer = nn.Linear(1024 + embedding_dim*35, 1)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        batch_dim, pool_size, _ = x.shape
+        embedded = []
+        for i in range(35):
+            if i < 2:
+                tensor = x[:, :, i].unsqueeze(2)
+                tensor = tensor.repeat(1, 1, self.embedding_dim)
+                embedded.append(tensor)
+            else:
+                tensor = self.embedding_layers[i-2](x[:, :, i].long())
+                embedded.append(tensor)
+        embedded = torch.cat(embedded, dim=2)
+        x_0 = embedded
+        x = self.cross_layer1(x_0, x_0)
+        x = self.cross_layer2(x, x_0)
+        x_cross = self.cross_layer3(x, x_0)
+        
+        x = self.relu(self.dnn_layer1(x_0))
+        x = self.relu(self.dnn_layer2(x))
+        x_dnn = self.relu(self.dnn_layer3(x))
+
+        out = self.final_layer(torch.cat((x_cross, x_dnn), dim=2))
+        return self.softmax(out)
+

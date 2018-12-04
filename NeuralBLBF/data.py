@@ -131,7 +131,7 @@ class BatchIterator():
                     products = products.to(self.device)
                     clicks = clicks.to(self.device)
                     propensities = propensities.to(self.device)
-                yield products, clicks, propensities
+                yield torch.autograd.Variable(products), clicks, propensities
         else:
             for pool_size in self.sorted_per_pool_size:
                 data = self.sorted_per_pool_size[pool_size]
@@ -139,7 +139,7 @@ class BatchIterator():
                 for i in range(0, len(data), self.batch_size):
                     batch = data[i:i+self.batch_size]
                     products = [sample.products for sample in batch]
-                    products = torch.FloatTensor(products)
+                    products = torch.autograd.Variable(torch.FloatTensor(products))
                     clicks = torch.FloatTensor([sample.click for sample in batch])
                     propensities = torch.FloatTensor([sample.propensity for sample in batch])
                     if self.enable_cuda:
