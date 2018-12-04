@@ -2,6 +2,7 @@ import argparse
 import torch
 import logging
 import json
+import os
 import numpy as np
 
 from NeuralBLBF.train import train
@@ -50,6 +51,9 @@ if __name__ == "__main__":
 
     # Load dict mapping features to keys
     with open(args['feature_dict_name']) as f: feature_dict = json.load(f)
+    if not os.path.exists(args['save_model_path']):
+        os.mkdir(args['save_model_path'])
+
     args['save_model_path'] = '{}/{}_{}'.format(
         args['save_model_path'], args['model_type'], args['embedding_dim']
     )
