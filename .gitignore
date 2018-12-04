@@ -7,3 +7,7 @@ Scripts/Logs/*
 NeuralBLBF/data/*
 NeuralBLBF/data/feature_to_keys.json
 *.sh
+
+__pycache__/
+.py[cod]
+.vscode

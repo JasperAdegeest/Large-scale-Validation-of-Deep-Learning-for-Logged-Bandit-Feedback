@@ -2,6 +2,7 @@ import argparse
 import torch
 import logging
 import json
+import os
 import numpy as np
 
 from NeuralBLBF.train import train
@@ -33,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', type=str, default=None)
     parser.add_argument('--optimizer_path', type=str, default=None)
     parser.add_argument('--weight_decay', type=float, default=0)
+    parser.add_argument('--prop_dropout', action='store_true', help="Use propensity dropout [https://arxiv.org/pdf/1706.05966.pdf]")
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')
@@ -50,6 +52,9 @@ if __name__ == "__main__":
 
     # Load dict mapping features to keys
     with open(args['feature_dict_name']) as f: feature_dict = json.load(f)
+    if not os.path.exists(args['save_model_path']):
+        os.mkdir(args['save_model_path'])
+
     args['save_model_path'] = '{}/{}_{}'.format(
         args['save_model_path'], args['model_type'], args['embedding_dim']
     )
