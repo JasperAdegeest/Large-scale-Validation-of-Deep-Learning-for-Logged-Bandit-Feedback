@@ -4,11 +4,11 @@ import logging
 import numpy as np
 from tqdm import tqdm
 
-from .data import CriteoDataset, BatchIterator
+from NeuralBLBF.data import CriteoDataset, BatchIterator
 
 
-from .evaluate import run_test_set
-from .data import BatchIterator, get_start_stop_idx, CriteoDataset
+from NeuralBLBF.evaluate import run_test_set
+from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
 
 
 def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, gamma, enable_cuda):
@@ -54,7 +54,7 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
                     optimizer.zero_grad()
                     output = model(sample)
                     loss += calc_loss(output, click, propensity, lamb, enable_cuda)
-                    
+
         epoch_losses.append(sum(losses) / len(losses))
         logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
