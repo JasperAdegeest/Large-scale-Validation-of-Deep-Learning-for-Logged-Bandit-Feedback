@@ -53,7 +53,7 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
                         loss = 0
                     optimizer.zero_grad()
                     output = model(sample)
-                    loss += calc_loss(output, click, propensity, lamb, enable_cuda)
+                    loss += calc_loss(output, click, propensity, lamb, 0, enable_cuda)
                     
         epoch_losses.append(sum(losses) / len(losses))
         logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))

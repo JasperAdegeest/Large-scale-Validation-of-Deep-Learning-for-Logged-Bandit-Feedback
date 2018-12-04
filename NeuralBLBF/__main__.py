@@ -5,7 +5,7 @@ import json
 import numpy as np
 
 from NeuralBLBF.train import train
-from NeuralBLBF.model import TinyEmbedFFNN, SmallEmbedFFNN, HashFFNN, LargeEmbedFFNN, CrossNetwork
+from NeuralBLBF.model import TinyEmbedFFNN, SmallEmbedFFNN, HashFFNN, LargeEmbedFFNN, CrossNetwork, HashFFNN2
 
 
 if __name__ == "__main__":
@@ -32,10 +32,11 @@ if __name__ == "__main__":
     parser.add_argument('--device_id', type=int, default=1)
     parser.add_argument('--model_path', type=str, default=None)
     parser.add_argument('--optimizer_path', type=str, default=None)
+    parser.add_argument('--weight_decay', type=float, default=0)
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')
-    parser.add_argument('--model_type', default="TinyEmbedFFNN", choices=["TinyEmbedFFNN", "SmallEmbedFFNN", "HashFFNN", "LargeEmbedFFNN", "CrossNetwork"])
+    parser.add_argument('--model_type', default="TinyEmbedFFNN", choices=["TinyEmbedFFNN", "SmallEmbedFFNN", "HashFFNN", "LargeEmbedFFNN", "CrossNetwork", "HashFFNN2"])
     args = vars(parser.parse_args())
 
     if args['enable_cuda'] and torch.cuda.is_available():
@@ -56,8 +57,8 @@ if __name__ == "__main__":
     # Initialize neural architecture and optimizer to use
     if args['model_type'] == "TinyEmbedFFNN" and not args['sparse']:
         model = TinyEmbedFFNN(feature_dict, device, **args)
-    elif args['model_type'] == "HashFFNN" or args['sparse']:
-        model = HashFFNN(len(feature_dict))
+    elif args['model_type'] == "HashFFNN2" or args['sparse']:
+        model = HashFFNN2(len(feature_dict))
     elif args['model_type'] == "LargeEmbedFFNN":
         model = LargeEmbedFFNN(feature_dict, device, **args)
     elif args['model_type'] == "SmallEmbedFFNN":
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         raise NotImplementedError()
 
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
-    optimizer = torch.optim.Adam(model.parameters(), lr=args["learning_rate"])
+    optimizer = torch.optim.Adam(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
     if args['model_path'] is not None and args['optimizer_path'] is not None:
         checkpoint = torch.load(args['model_path'])
         model.load_state_dict(checkpoint)

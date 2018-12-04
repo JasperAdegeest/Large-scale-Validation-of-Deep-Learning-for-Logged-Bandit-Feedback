@@ -111,12 +111,35 @@ class TinyEmbedFFNN(EmbedFFNN):
         return self.softmax(out)
 
 
+class HashFFNN2(nn.Module):
+    def __init__(self, n_features):
+        super(HashFFNN2, self).__init__()
+
+        # Embedding layers
+        #self.linear = nn.Linear(n_features, 1,  bias=False)
+        self.linear1 = nn.Linear(n_features, 2048)
+        self.linear2 = nn.Linear(2048, 1024)
+        self.linear3 = nn.Linear(1024, 256)
+        self.linear4 = nn.Linear(256, 1)
+        self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, feature_vector):
+        out = torch.spmm(feature_vector, self.linear1.weight.t()) + self.linear1.bias
+        out = out.unsqueeze(0)
+        out = self.relu(out)
+        out = self.relu(self.linear2(out))
+        out = self.relu(self.linear3(out))
+        score = self.linear4(out)
+        probability = self.softmax(score)
+        return probability
+
+
+
 class HashFFNN(nn.Module):
     def __init__(self, n_features):
         super(HashFFNN, self).__init__()
 
-        # Embedding layers
-        #self.linear = nn.Linear(n_features, 1,  bias=False)
         weights = torch.FloatTensor(n_features, 1)
         torch.nn.init.xavier_uniform_(weights)
         self.linear = nn.Parameter(weights)
@@ -127,6 +150,7 @@ class HashFFNN(nn.Module):
         score = score.unsqueeze(0)
         probability = self.softmax(score)
         return probability
+
 
 
 class CrossLayer(nn.Module):
@@ -153,11 +177,11 @@ class CrossNetwork(EmbedFFNN):
         self.cross_layer3 = CrossLayer(embedding_dim*35)
 
         # Regular Deep Neural Network
-        self.dnn_layer1 = nn.Linear(35 * embedding_dim, 4096)
-        self.dnn_layer2 = nn.Linear(4096, 2048)
-        self.dnn_layer3 = nn.Linear(2048, 1024)
+        self.dnn_layer1 = nn.Linear(35 * embedding_dim, 1024)
+        self.dnn_layer2 = nn.Linear(1024, 768)
+        self.dnn_layer3 = nn.Linear(768, 512)
         self.relu = nn.ReLU()
-        self.final_layer = nn.Linear(1024 + embedding_dim*35, 1)
+        self.final_layer = nn.Linear(512 + embedding_dim*35, 1)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
