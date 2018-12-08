@@ -72,8 +72,9 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError()
 
+    if args["enable_cuda"] and torch.cuda.is_available(): model.to(device)
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
-    optimizer = torch.optim.Adam(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
+    optimizer = torch.optim.SGD(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
     start_epoch = 0
     if args['resume'] is not None:
         checkpoint = torch.load(args['resume'])
@@ -81,7 +82,6 @@ if __name__ == "__main__":
         optimizer.load_state_dict(checkpoint['optimizer'])
         start_epoch = checkpoint['epoch']
 
-    if args["enable_cuda"] and torch.cuda.is_available(): model.to(device)
     logging.info("Initialized model and optimizer. Number of parameters: {}".format(n_params))
 
     train(model, optimizer, feature_dict, start_epoch, device, **args)

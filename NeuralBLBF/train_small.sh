@@ -18,8 +18,8 @@ module load Python/3.6.3-foss-2017b
 module load cuDNN/7.0.5-CUDA-9.0.176
 module load NCCL/2.0.5-CUDA-9.0.176
 
-DATA_TRAIN="data/train"
-DATA_TEST="data/validate"
+DATA_TRAIN="$HOME/IR2/data/vw_compressed_train"
+DATA_TEST="$HOME/IR2/data/vw_compressed_validate"
 EPOCHS=10
 LAMBDA=1
 EMBD_DIM=64
