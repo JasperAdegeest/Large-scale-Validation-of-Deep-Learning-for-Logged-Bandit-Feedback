@@ -22,6 +22,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/IR2
 DATA_TRAIN="$HOME/IR2/data/vw_compressed_train"
 DATA_TEST="$HOME/IR2/data/vw_compressed_validate"
 F2K_FILE="$HOME/IR2/data/features_to_keys.json"
+MODEL_PATH="$HOME/IR2/data/models"
 EPOCHS=10
 LAMBDA=1
 EMBD_DIM=256
@@ -29,4 +30,4 @@ MODEL_TYPE="HashFFNN2"
 
 python3 -m NeuralBLBF --device_id 0 --train $DATA_TRAIN --test $DATA_TEST --epochs $EPOCHS \
     --stop_idx 100000000 --step_size 20000000 --batch_size 128 --enable_cuda --embedding_dim $EMBD_DIM \
-    --model $MODEL_TYPE --save --lamb $LAMBDA --feature_dict_name $F2K_FILE
+    --model $MODEL_TYPE --save --lamb $LAMBDA --feature_dict_name $F2K_FILE --save_model_path $MODEL_PATH
