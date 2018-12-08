@@ -31,8 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', default=0.00005)
     parser.add_argument('--save_model_path', type=str, default='data/models')
     parser.add_argument('--device_id', type=int, default=1)
-    parser.add_argument('--model_path', type=str, default=None)
-    parser.add_argument('--optimizer_path', type=str, default=None)
+    parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('--weight_decay', type=float, default=0)
     parser.add_argument('--prop_dropout', action='store_true', help="Use propensity dropout [https://arxiv.org/pdf/1706.05966.pdf]")
 
@@ -75,13 +74,14 @@ if __name__ == "__main__":
 
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
     optimizer = torch.optim.Adam(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
-    if args['model_path'] is not None and args['optimizer_path'] is not None:
-        checkpoint = torch.load(args['model_path'])
-        model.load_state_dict(checkpoint)
-        checkpoint = torch.load(args['optimizer_path'])
-        optimizer.load_state_dict(checkpoint)
+    start_epoch = 0
+    if args['resume'] is not None:
+        checkpoint = torch.load(args['resume'])
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        start_epoch = checkpoint['epoch']
 
     if args["enable_cuda"] and torch.cuda.is_available(): model.to(device)
     logging.info("Initialized model and optimizer. Number of parameters: {}".format(n_params))
 
-    train(model, optimizer, feature_dict, device, **args)
+    train(model, optimizer, feature_dict, start_epoch, device, **args)

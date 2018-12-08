@@ -1,5 +1,6 @@
 import torch
 import logging
+import datetime
 
 import numpy as np
 from tqdm import tqdm
@@ -17,14 +18,14 @@ def calc_loss(output_tensor, click_tensor, propensity_tensor, lamb, gamma, enabl
     return torch.sum(R_hat) / torch.sum(N_hat)
 
 
-def train(model, optimizer, feature_dict, device, save_model_path, train, test,
+def train(model, optimizer, feature_dict, start_epoch, device, save_model_path, train, test,
           batch_size, enable_cuda, epochs, lamb, gamma, sparse, stop_idx, step_size,
           save, **kwargs):
     epoch_losses = []
     logging.info("Initialized dataset")
     run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
 
-    for i in range(epochs):
+    for i in range(start_epoch, epochs, 1):
         logging.info("Starting epoch {}".format(i))
 
         losses = []
@@ -58,8 +59,12 @@ def train(model, optimizer, feature_dict, device, save_model_path, train, test,
         logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
         run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
-        torch.save(model.state_dict(), save_model_path + '_{}.pt'.format(i))
-        torch.save(optimizer.state_dict(), save_model_path + '_optimizer_{}.pt'.format(i))
+        state = {
+            'model': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'epoch': i
+        }
+        torch.save(state, save_model_path + 'e{}-{}.pt'.format(i, datetime.datetime.now()))
 
 ############ BIN ################
 
