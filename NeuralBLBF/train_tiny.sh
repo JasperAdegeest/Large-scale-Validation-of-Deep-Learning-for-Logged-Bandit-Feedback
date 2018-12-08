@@ -21,6 +21,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/IR2
 
 DATA_TRAIN="$HOME/IR2/data/vw_compressed_train"
 DATA_TEST="$HOME/IR2/data/vw_compressed_validate"
+F2K_FILE="$HOME/IR2/data/features_to_keys.json"
 EPOCHS=10
 LAMBDA=1
 EMBD_DIM=64
