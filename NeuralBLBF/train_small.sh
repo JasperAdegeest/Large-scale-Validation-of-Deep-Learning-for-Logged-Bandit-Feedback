@@ -29,4 +29,4 @@ MODEL_TYPE="SmallEmbedFFNN"
 
 python3 -m NeuralBLBF --device_id 0 --train $DATA_TRAIN --test $DATA_TEST --epochs $EPOCHS \
     --stop_idx 100000000 --step_size 20000000 --batch_size 128 --enable_cuda --embedding_dim $EMBD_DIM \
-    --model $MODEL_TYPE --save --lamb $LAMBDA
+    --model $MODEL_TYPE --save --lamb $LAMBDA --feature_dict_name $F2K_FILE
