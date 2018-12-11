@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument('--enable_cuda', action='store_true')
     parser.add_argument('--save', action='store_true')
     parser.add_argument('--step_size', type=int, default=100000)
-    parser.add_argument('--learning_rate', default=0.00005)
+    parser.add_argument('--learning_rate', type=float, default=0.00005)
     parser.add_argument('--save_model_path', type=str, default='data/models')
     parser.add_argument('--device_id', type=int, default=1)
     parser.add_argument('--resume', type=str, default=None)
