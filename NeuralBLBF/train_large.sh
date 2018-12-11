@@ -27,7 +27,7 @@ EPOCHS=10
 LAMBDA=1
 EMBD_DIM=256
 MODEL_TYPE="LargeEmbedFFNN"
-LR=0.01
+LR=0.03
 
 python3 -m NeuralBLBF --device_id 0 --train $DATA_TRAIN --test $DATA_TEST --epochs $EPOCHS \
     --stop_idx 100000000 --step_size 20000000 --batch_size 128 --enable_cuda --embedding_dim $EMBD_DIM \
