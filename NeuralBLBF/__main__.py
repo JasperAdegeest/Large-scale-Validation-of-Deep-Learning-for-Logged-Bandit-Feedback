@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument('--device_id', type=int, default=1)
     parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('--weight_decay', type=float, default=0)
-    parser.add_argument('--prop_dropout', action='store_true', help="Use propensity dropout [https://arxiv.org/pdf/1706.05966.pdf]")
+    parser.add_argument('--training_eval', action='store_true', help="Also perform evaluation on training set")
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')

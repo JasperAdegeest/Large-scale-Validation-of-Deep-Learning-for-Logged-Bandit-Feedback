@@ -59,11 +59,15 @@ def train(model, optimizer, feature_dict, start_epoch, device, save_model_path, 
         logging.info("Finished epoch {}, avg. loss {}".format(i, epoch_losses[-1]))
 
         run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
+        if kwargs['training_eval']:
+            run_test_set(model, train, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
+
         state = {
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'epoch': i
         }
+        logging.info("Saving after completed epoch {i}")
         torch.save(state, save_model_path + 'e{}-{}.pt'.format(i, datetime.datetime.now()))
 
 ############ BIN ################
