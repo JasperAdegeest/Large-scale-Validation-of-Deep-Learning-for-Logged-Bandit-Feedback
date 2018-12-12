@@ -81,6 +81,7 @@ if __name__ == "__main__":
         model.load_state_dict(checkpoint['model'])
         optim_checkpoint = checkpoint['optimizer']
         start_epoch = checkpoint['epoch']
+        logging.info(f"Resuming from model {args['resume']}. Start at epoch: {start_epoch}")
 
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
     optimizer = torch.optim.SGD(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
