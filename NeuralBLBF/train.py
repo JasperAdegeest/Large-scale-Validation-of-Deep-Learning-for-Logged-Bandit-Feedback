@@ -67,7 +67,7 @@ def train(model, optimizer, feature_dict, start_epoch, device, save_model_path, 
             'optimizer': optimizer.state_dict(),
             'epoch': i
         }
-        logging.info("Saving after completed epoch {i}")
+        logging.info(f"Saving after completed epoch {i}")
         torch.save(state, save_model_path + 'e{}-{}.pt'.format(i, datetime.datetime.now()))
 
 ############ BIN ################
