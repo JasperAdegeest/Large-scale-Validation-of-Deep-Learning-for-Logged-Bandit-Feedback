@@ -22,13 +22,14 @@ class EmbedFFNN(nn.Module):
 
 
 class SmallEmbedFFNN(EmbedFFNN):
-    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, dropout, **kwargs):
         super(SmallEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         self.linear1 = nn.Linear(35 * embedding_dim, 512)
         self.linear2 = nn.Linear(512, 256)
         self.linear3 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         batch_dim, pool_size, _ = x.shape
@@ -42,17 +43,17 @@ class SmallEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = torch.cat(input, dim=2)
-        out = self.linear1(out)
+        out = self.dropout(torch.cat(input, dim=2))
+        out = self.dropout(self.linear1(out))
         out = self.relu(out)
-        out = self.linear2(out)
+        out = self.dropout(self.linear2(out))
         out = self.relu(out)
         out = self.linear3(out)
         return self.softmax(out)
 
 
 class LargeEmbedFFNN(EmbedFFNN):
-    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, dropout, **kwargs):
         super(LargeEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         self.linear1 = nn.Linear(35 * embedding_dim, 2048)
         self.linear2 = nn.Linear(2048, 1024)
@@ -60,6 +61,7 @@ class LargeEmbedFFNN(EmbedFFNN):
         self.linear4 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         batch_dim, pool_size, _ = x.shape
@@ -73,24 +75,25 @@ class LargeEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = torch.cat(input, dim=2)
-        out = self.linear1(out)
+        out = self.dropout(torch.cat(input, dim=2))
+        out = self.dropout(self.linear1(out))
         out = self.relu(out)
-        out = self.linear2(out)
+        out = self.dropout(self.linear2(out))
         out = self.relu(out)
-        out = self.linear3(out)
+        out = self.dropout(self.linear3(out))
         out = self.relu(out)
         out = self.linear4(out)
         return self.softmax(out)
 
 
 class TinyEmbedFFNN(EmbedFFNN):
-    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
+    def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, dropout, **kwargs):
         super(TinyEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         self.linear1 = nn.Linear(35 * embedding_dim, 256)
         self.linear2 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
+        self.dropout = nn.Dropout(dropout) 
 
     def forward(self, x):
         batch_dim, pool_size, _ = x.shape
@@ -104,8 +107,8 @@ class TinyEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = torch.cat(input, dim=2)
-        out = self.linear1(out)
+        out = self.dropout(torch.cat(input, dim=2))
+        out = self.dropout(self.linear1(out))
         out = self.relu(out)
         out = self.linear2(out)
         return self.softmax(out)

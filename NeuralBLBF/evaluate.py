@@ -14,7 +14,7 @@ def run_test_set(model, test_filename, batch_size, enable_cuda, sparse, feature_
         N = 0
 
         for i in range(0, stop_idx, step_size):
-            logging.info("Loading testing {} to {} out of {}.".format(i, i+step_size, stop_idx))
+            logging.info("Loading testing {} to {} out of {} of test set: {}.".format(i, i+step_size, stop_idx, test_filename))
             test_set = CriteoDataset(test_filename, feature_dict, i+step_size, i, sparse, save)
             for j, (sample, click, propensity) in enumerate(BatchIterator(test_set, batch_size, enable_cuda, sparse, device)):
                 output = model(sample)

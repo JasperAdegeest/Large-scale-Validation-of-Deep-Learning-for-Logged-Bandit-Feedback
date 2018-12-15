@@ -33,7 +33,8 @@ if __name__ == "__main__":
     parser.add_argument('--device_id', type=int, default=1)
     parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('--weight_decay', type=float, default=0)
-    parser.add_argument('--prop_dropout', action='store_true', help="Use propensity dropout [https://arxiv.org/pdf/1706.05966.pdf]")
+    parser.add_argument('--dropout', type=float, default=0)
+    parser.add_argument('--training_eval', action='store_true', help="Also perform evaluation on training set")
 
     # If sparse is used the model needs to be changed
     parser.add_argument('--sparse', action='store_true')
@@ -81,6 +82,7 @@ if __name__ == "__main__":
         model.load_state_dict(checkpoint['model'])
         optim_checkpoint = checkpoint['optimizer']
         start_epoch = checkpoint['epoch']
+        logging.info(f"Resuming from model {args['resume']}. Start at epoch: {start_epoch}")
 
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
     optimizer = torch.optim.SGD(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
