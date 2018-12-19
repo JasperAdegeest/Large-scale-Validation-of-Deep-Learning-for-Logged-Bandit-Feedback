@@ -131,22 +131,24 @@ class BatchIterator():
                     products = products.to(self.device)
                     clicks = clicks.to(self.device)
                     propensities = propensities.to(self.device)
-                yield products, clicks, propensities
+                yield torch.autograd.Variable(products), clicks, propensities
         else:
-            for pool_size in self.sorted_per_pool_size:
+            keys = list(self.sorted_per_pool_size.keys())
+            random.shuffle(keys)
+            for pool_size in keys:
                 data = self.sorted_per_pool_size[pool_size]
                 random.shuffle(data)
                 for i in range(0, len(data), self.batch_size):
                     batch = data[i:i+self.batch_size]
                     products = [sample.products for sample in batch]
-                    products = torch.FloatTensor(products)
+                    products = torch.autograd.Variable(torch.FloatTensor(products))
                     clicks = torch.FloatTensor([sample.click for sample in batch])
                     propensities = torch.FloatTensor([sample.propensity for sample in batch])
                     if self.enable_cuda:
                         products = products.to(self.device)
                         clicks = clicks.to(self.device)
                         propensities = propensities.to(self.device)
-                    yield products, clicks, propensities
+                    yield torch.autograd.Variable(products), clicks, propensities
 
 
 class CriteoDataset(Dataset):
@@ -174,6 +176,7 @@ class CriteoDataset(Dataset):
             pickle_file = '{}_{}-{}.pickle'.format(filename, start_idx, stop_idx)
 
         sample = None
+
         if os.path.exists(pickle_file):
             self.samples = pickle.load(open(pickle_file, "rb"))
         else:

@@ -6,25 +6,46 @@ from tqdm import tqdm
 from NeuralBLBF.data import BatchIterator, get_start_stop_idx, CriteoDataset
 
 
-def run_test_set(model, test_filename, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device):
+def run_test_set(model, test_filename, batch_size, enable_cuda, sparse,
+                 feature_dict, stop_idx, step_size, save, device, **kwargs):
     model.eval()
-    with torch.no_grad():
+    with torch.no_grad(), open("propensities_lp.txt", 'w') as f1, open("propensities_np.txt", 'w') as f2:
         R = 0
         C = 0
         N = 0
+        N_list = []
+        R_list = []
+        C_list = []
 
         for i in range(0, stop_idx, step_size):
-            logging.info("Loading testing {} to {} out of {}.".format(i, i+step_size, stop_idx))
+            logging.info("Loading testing {} to {} out of {} of test set: {}.".format(i, i+step_size, stop_idx, test_filename))
             test_set = CriteoDataset(test_filename, feature_dict, i+step_size, i, sparse, save)
             for j, (sample, click, propensity) in enumerate(BatchIterator(test_set, batch_size, enable_cuda, sparse, device)):
-                output = model(sample)
+                output = model(sample, 0.0)
                 rectified_label = click.eq(0).float()
-                N += torch.sum(click.eq(1) * 10 + click.eq(0)).float()
-                R += torch.sum(rectified_label * (output[:, 0, 0] / propensity))
-                C += torch.sum(output[:, 0, 0] / propensity)
+                a = click.eq(1) * 10 + click.eq(0)
+                N_list.extend(a.cpu().numpy())
 
-        R = (R / N) * 10**4
-        C = C / N
+                b = rectified_label * (output[:, 0, 0] / propensity)
+                R_list.extend(b.cpu().numpy())
+
+                c = output[:, 0, 0] / propensity
+                C_list.extend(c.cpu().numpy())
+                output = output.squeeze(2)
+
+
+                for c, p in zip(list(click.cpu().numpy()), list(output[:, 0].cpu().numpy())):
+                    f1.write("{}\t{}\n".format(c, p))
+
+                sampling = torch.multinomial(output, 1, replacement=False).cpu().numpy()
+                for c, index, prop in zip(click.cpu().numpy(), sampling, output.cpu().numpy()):
+                    f2.write("{}\n".format(prop[index[0]]))
+                
+
+        modified_denom = sum(N_list)
+        power = 10**4
+        R = (sum(R_list) / modified_denom) * power
+        C = sum(C_list) / sum(N_list)
         R_div_C = R / C
 
         logging.info("Test Results: R x 10^4: {:.4f}\t C: {:.4f}\t (R x 10^4) / C: {:.4f}".format(R, C, R_div_C))
