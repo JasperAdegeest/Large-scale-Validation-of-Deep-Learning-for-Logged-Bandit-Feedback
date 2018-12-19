@@ -23,7 +23,9 @@ def train(model, optimizer, feature_dict, start_epoch, device, save_model_path, 
           save, **kwargs):
     epoch_losses = []
     logging.info("Initialized dataset")
-    run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
+    #run_test_set(model, test, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
+    # if kwargs['training_eval']:
+    #     run_test_set(model, train, batch_size, enable_cuda, sparse, feature_dict, stop_idx, step_size, save, device)
 
     for i in range(start_epoch, epochs, 1):
         logging.info("Starting epoch {}".format(i))
@@ -67,31 +69,5 @@ def train(model, optimizer, feature_dict, start_epoch, device, save_model_path, 
             'optimizer': optimizer.state_dict(),
             'epoch': i
         }
-        logging.info(f"Saving after completed epoch {i}")
+        logging.info("Saving after completed epoch {}".format(i))
         torch.save(state, save_model_path + 'e{}-{}.pt'.format(i, datetime.datetime.now()))
-
-############ BIN ################
-
-# def old_calc_loss(output_tensor, click_tensor, propensity_tensor, enable_cuda):
-#     current_batch_size = output_tensor.shape[0]
-#     click_tensor = click_tensor.view(-1, 1)
-#     clicked = torch.zeros(current_batch_size, 1)
-#     not_clicked = torch.ones(current_batch_size, 1)
-#     if enable_cuda:
-#         clicked = clicked.cuda()
-#         not_clicked = not_clicked.cuda()
-#     rectified_label = torch.where((click_tensor == 1), clicked, not_clicked)
-
-#     clicked_tensor = torch.ones(current_batch_size, 1)
-#     not_clicked_tensor = torch.ones(current_batch_size, 1) * 10
-#     if enable_cuda:
-#         clicked_tensor = clicked_tensor.cuda()
-#         not_clicked_tensor = not_clicked_tensor.cuda()
-#     o_tensor = torch.where((click_tensor == 1), not_clicked_tensor, clicked_tensor)
-#     N_tensor = o_tensor.sum()
-
-#     # Calculate R
-#     R_tensor = (rectified_label * (output_tensor[:, 0, 0] / propensity_tensor).view(-1, 1)).sum() * 10 ** 4
-#     loss_tensor = -(R_tensor / N_tensor)
-
-#     return torch.sum(loss_tensor)

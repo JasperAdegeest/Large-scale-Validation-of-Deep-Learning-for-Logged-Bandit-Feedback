@@ -1,5 +1,8 @@
 from torch import nn
 import torch
+import torch.nn.functional as F
+import math
+
 
 class EmbedFFNN(nn.Module):
     def __init__(self, feature_dict, device, embedding_dim, enable_cuda):
@@ -12,6 +15,7 @@ class EmbedFFNN(nn.Module):
             self.embedding_layers.append(
                 nn.Embedding(len(feature_dict[str(i)]), embedding_dim)
             )
+        self.embedding_layers = nn.ModuleList(self.embedding_layers)
 
         if enable_cuda:
             for i in range(33):
@@ -29,9 +33,10 @@ class SmallEmbedFFNN(EmbedFFNN):
         self.linear3 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = dropout
 
-    def forward(self, x):
+    def forward(self, x, p=None):
+        if p is None: p = self.dropout
         batch_dim, pool_size, _ = x.shape
         input = []
         for i in range(35):
@@ -43,10 +48,10 @@ class SmallEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = self.dropout(torch.cat(input, dim=2))
-        out = self.dropout(self.linear1(out))
+        out = F.dropout(torch.cat(input, dim=2), p=p)
+        out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
-        out = self.dropout(self.linear2(out))
+        out = F.dropout(self.linear2(out), p=p)
         out = self.relu(out)
         out = self.linear3(out)
         return self.softmax(out)
@@ -61,9 +66,10 @@ class LargeEmbedFFNN(EmbedFFNN):
         self.linear4 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = dropout
 
-    def forward(self, x):
+    def forward(self, x, p=None):
+        if p is None: p = self.dropout
         batch_dim, pool_size, _ = x.shape
         input = []
         for i in range(35):
@@ -75,12 +81,12 @@ class LargeEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = self.dropout(torch.cat(input, dim=2))
-        out = self.dropout(self.linear1(out))
+        out = F.dropout(torch.cat(input, dim=2), p=p)
+        out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
-        out = self.dropout(self.linear2(out))
+        out = F.dropout(self.linear2(out), p=p)
         out = self.relu(out)
-        out = self.dropout(self.linear3(out))
+        out = F.dropout(self.linear3(out), p=p)
         out = self.relu(out)
         out = self.linear4(out)
         return self.softmax(out)
@@ -93,9 +99,10 @@ class TinyEmbedFFNN(EmbedFFNN):
         self.linear2 = nn.Linear(256, 1)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
-        self.dropout = nn.Dropout(dropout) 
+        self.dropout = dropout 
 
-    def forward(self, x):
+    def forward(self, x, p=None):
+        if p is None: p = self.dropout
         batch_dim, pool_size, _ = x.shape
         input = []
         for i in range(35):
@@ -107,48 +114,49 @@ class TinyEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = self.dropout(torch.cat(input, dim=2))
-        out = self.dropout(self.linear1(out))
+        out = F.dropout(torch.cat(input, dim=2), p=p)
+        out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
         out = self.linear2(out)
         return self.softmax(out)
 
 
-class HashFFNN2(nn.Module):
+class SparseFFNN(nn.Module):
     def __init__(self, n_features):
-        super(HashFFNN2, self).__init__()
+        super(SparseFFNN, self).__init__()
 
         # Embedding layers
         #self.linear = nn.Linear(n_features, 1,  bias=False)
-        self.linear1 = nn.Linear(n_features, 2048)
-        self.linear2 = nn.Linear(2048, 1024)
-        self.linear3 = nn.Linear(1024, 256)
-        self.linear4 = nn.Linear(256, 1)
+        weights = torch.FloatTensor(n_features, 32)
+        stdv = 1. / math.sqrt(n_features)
+        weights.uniform_(-stdv, stdv)
+        self.linear1 = nn.Parameter(weights)
+        weights = torch.FloatTensor(32, 1)
+        stdv = 1. / math.sqrt(32)
+        weights.uniform_(-stdv, stdv)
+        self.linear2 = nn.Parameter(weights)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, feature_vector):
-        out = torch.spmm(feature_vector, self.linear1.weight.t()) + self.linear1.bias
-        out = out.unsqueeze(0)
+    def forward(self, feature_vector, p=None):
+        out = torch.spmm(feature_vector, self.linear1)
         out = self.relu(out)
-        out = self.relu(self.linear2(out))
-        out = self.relu(self.linear3(out))
-        score = self.linear4(out)
-        probability = self.softmax(score)
+        out = torch.mm(out, self.linear2)
+        out = out.unsqueeze(0)
+        probability = self.softmax(out)
         return probability
 
 
-
-class HashFFNN(nn.Module):
+class SparseLinear(nn.Module):
     def __init__(self, n_features):
-        super(HashFFNN, self).__init__()
-
+        super(SparseLinear, self).__init__()
         weights = torch.FloatTensor(n_features, 1)
-        torch.nn.init.xavier_uniform_(weights)
+        stdv = 1. / math.sqrt(n_features)
+        weights.uniform_(-stdv, stdv)
         self.linear = nn.Parameter(weights)
         self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, feature_vector):
+    def forward(self, feature_vector, p=None):
         score = torch.spmm(feature_vector, self.linear)
         score = score.unsqueeze(0)
         probability = self.softmax(score)
