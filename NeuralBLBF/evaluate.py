@@ -27,9 +27,11 @@ def run_test_set(model, test_filename, batch_size, enable_cuda, sparse,
                 N_list.extend(a.cpu().numpy())
 
                 b = rectified_label * (output[:, 0, 0] / propensity)
+
                 R_list.extend(b.cpu().numpy())
 
                 c = output[:, 0, 0] / propensity
+
                 C_list.extend(c.cpu().numpy())
                 output = output.squeeze(2)
 
@@ -41,15 +43,14 @@ def run_test_set(model, test_filename, batch_size, enable_cuda, sparse,
                 for c, index, prop in zip(click.cpu().numpy(), sampling, output.cpu().numpy()):
                     f2.write("{}\n".format(prop[index[0]]))
 
-
         modifiedDenom = sum(N_list)
         power = 10**4
         numerator = R_list
         denominator = C_list
-        maxInstances = len(R_list)
+        maxInstances = len(N_list)
         scaleFactor = np.sqrt(maxInstances) / modifiedDenom
 
-        R = (np.sum(numerator) / modifiedDenom) * power
+        R = (np.sum(numerator) / modifiedDenom)
         R_std = 2.58 * np.std(numerator) * scaleFactor  # 99% CI
         C = np.sum(denominator) / modifiedDenom
         C_std = 2.58 * np.std(denominator) * scaleFactor  # 99% CI
@@ -66,4 +67,4 @@ def run_test_set(model, test_filename, batch_size, enable_cuda, sparse,
         R_div_C_std = 2.58 * np.sqrt(Var) / np.sqrt(maxInstances)  # 99% CI
 
         logging.info("Test Results: R x 10^4: {:.4f}+/-{:.3f}\t C: {:.4f}+/-{:.3f}\t (R x 10^4) / C: {:.4f}+/-{:.3f}"
-                     .format(R, R_std, C, C_std, R_div_C, R_div_C_std))
+                     .format(R*power, R_std*power, C, C_std, R_div_C*power, R_div_C_std*power))
