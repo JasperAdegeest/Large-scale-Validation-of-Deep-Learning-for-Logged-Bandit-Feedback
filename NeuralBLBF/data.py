@@ -122,33 +122,39 @@ class BatchIterator():
         self.device = device
 
     def __iter__(self):
-        if self.sparse:
-            for sample in self.dataset:
-                products = sample.products
-                clicks = torch.FloatTensor([sample.click])
-                propensities = torch.FloatTensor([sample.propensity])
+        # if self.sparse:
+        #     for sample in self.dataset:
+        #         products = sample.products
+        #         clicks = torch.FloatTensor([sample.click])
+        #         propensities = torch.FloatTensor([sample.propensity])
+        #         if self.enable_cuda:
+        #             products = products.to(self.device)
+        #             clicks = clicks.to(self.device)
+        #             propensities = propensities.to(self.device)
+        #         yield torch.autograd.Variable(products), clicks, propensities
+        # else:
+        keys = list(self.sorted_per_pool_size.keys())
+        random.shuffle(keys)
+        for pool_size in keys:
+            data = self.sorted_per_pool_size[pool_size]
+            random.shuffle(data)
+            for i in range(0, len(data), self.batch_size):
+                batch = data[i:i+self.batch_size]
+                products = [sample.products for sample in batch]
+                if self.sparse:
+                    products = torch.stack([sample.products.to_dense() for sample in batch])
+                    products = torch.autograd.Variable(products)
+                else:
+                    products = [sample.products for sample in batch]
+                    products = torch.autograd.Variable(torch.FloatTensor(products))
+                
+                clicks = torch.FloatTensor([sample.click for sample in batch])
+                propensities = torch.FloatTensor([sample.propensity for sample in batch])
                 if self.enable_cuda:
                     products = products.to(self.device)
                     clicks = clicks.to(self.device)
                     propensities = propensities.to(self.device)
-                yield torch.autograd.Variable(products), clicks, propensities
-        else:
-            keys = list(self.sorted_per_pool_size.keys())
-            random.shuffle(keys)
-            for pool_size in keys:
-                data = self.sorted_per_pool_size[pool_size]
-                random.shuffle(data)
-                for i in range(0, len(data), self.batch_size):
-                    batch = data[i:i+self.batch_size]
-                    products = [sample.products for sample in batch]
-                    products = torch.autograd.Variable(torch.FloatTensor(products))
-                    clicks = torch.FloatTensor([sample.click for sample in batch])
-                    propensities = torch.FloatTensor([sample.propensity for sample in batch])
-                    if self.enable_cuda:
-                        products = products.to(self.device)
-                        clicks = clicks.to(self.device)
-                        propensities = propensities.to(self.device)
-                    yield torch.autograd.Variable(products), clicks, propensities
+                yield products, clicks, propensities
 
 
 class CriteoDataset(Dataset):

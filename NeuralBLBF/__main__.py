@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--train', default='data/vw_compressed_train')
     parser.add_argument('--valid', default='data/vw_compressed_validate')
     parser.add_argument('--test', default='data/vw_compressed_validate')
-    parser.add_argument('--stop_idx', type=int, default=1500)
+    parser.add_argument('--stop_idx', type=int, default=1000000)
     parser.add_argument('--step_size', type=int, default=100000)
     parser.add_argument('--device_id', type=int, default=1)
     parser.add_argument('--feature_dict_name', type=str,
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     n_params = sum([np.prod(par.size()) for par in model.parameters() if par.requires_grad])
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'])
+    optimizer = torch.optim.SGD(model.parameters(), lr=args["learning_rate"], weight_decay=args['weight_decay'], momentum=0.9)
     if optim_checkpoint is not None:
         optimizer.load_state_dict(optim_checkpoint)
     logging.info("Initialized model and optimizer. Number of parameters: {}".format(n_params))

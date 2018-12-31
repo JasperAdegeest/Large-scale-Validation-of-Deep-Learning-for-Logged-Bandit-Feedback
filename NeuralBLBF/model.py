@@ -48,7 +48,7 @@ class SmallEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = F.dropout(torch.cat(input, dim=2), p=p)
+        out = torch.cat(input, dim=2)
         out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
         out = F.dropout(self.linear2(out), p=p)
@@ -81,7 +81,7 @@ class LargeEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = F.dropout(torch.cat(input, dim=2), p=p)
+        out = torch.cat(input, dim=2)
         out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
         out = F.dropout(self.linear2(out), p=p)
@@ -114,7 +114,7 @@ class TinyEmbedFFNN(EmbedFFNN):
                 tensor = self.embedding_layers[i-2](x[:, :, i].long())
                 input.append(tensor)
 
-        out = F.dropout(torch.cat(input, dim=2), p=p)
+        out = torch.cat(input, dim=2)
         out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
         out = self.linear2(out)
@@ -127,22 +127,27 @@ class SparseFFNN(nn.Module):
 
         # Embedding layers
         #self.linear = nn.Linear(n_features, 1,  bias=False)
-        weights = torch.FloatTensor(n_features, 32)
-        stdv = 1. / math.sqrt(n_features)
-        weights.uniform_(-stdv, stdv)
-        self.linear1 = nn.Parameter(weights)
-        weights = torch.FloatTensor(32, 1)
-        stdv = 1. / math.sqrt(32)
-        weights.uniform_(-stdv, stdv)
-        self.linear2 = nn.Parameter(weights)
+        # weights = torch.FloatTensor(n_features, 32)
+        # stdv = 1. / math.sqrt(n_features)
+        # weights.uniform_(-stdv, stdv)
+        # self.linear1 = nn.Parameter(weights)
+        # weights = torch.FloatTensor(32, 1)
+        # stdv = 1. / math.sqrt(32)
+        # weights.uniform_(-stdv, stdv)
+        # self.linear2 = nn.Parameter(weights)
+        self.linear1 = nn.Linear(n_features, 32, bias=True)
+        self.linear2 = nn.Linear(32, 1, bias=True)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, feature_vector, p=None):
-        out = torch.spmm(feature_vector, self.linear1)
+        # out = torch.spmm(feature_vector, self.linear1)
+        # out = self.relu(out)
+        # out = torch.mm(out, self.linear2)
+        # out = out.unsqueeze(0)
+        out = self.linear1(feature_vector)
         out = self.relu(out)
-        out = torch.mm(out, self.linear2)
-        out = out.unsqueeze(0)
+        out = self.linear2(out)
         probability = self.softmax(out)
         return probability
 
@@ -150,15 +155,17 @@ class SparseFFNN(nn.Module):
 class SparseLinear(nn.Module):
     def __init__(self, n_features):
         super(SparseLinear, self).__init__()
-        weights = torch.FloatTensor(n_features, 1)
-        stdv = 1. / math.sqrt(n_features)
-        weights.uniform_(-stdv, stdv)
-        self.linear = nn.Parameter(weights)
+        # weights = torch.FloatTensor(n_features, 1)
+        # stdv = 1. / math.sqrt(n_features)
+        # weights.uniform_(-stdv, stdv)
+        # self.linear = nn.Parameter(weights)
+        self.linear = nn.Linear(n_features, 1, bias=False)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, feature_vector, p=None):
-        score = torch.spmm(feature_vector, self.linear)
-        score = score.unsqueeze(0)
+        # score = torch.spmm(feature_vector, self.linear)
+        # score = score.unsqueeze(0)
+        score = self.linear(feature_vector)
         probability = self.softmax(score)
         return probability
 
