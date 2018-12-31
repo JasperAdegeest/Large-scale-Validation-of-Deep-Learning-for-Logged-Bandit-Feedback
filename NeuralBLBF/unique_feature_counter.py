@@ -1,5 +1,5 @@
 """
-This script calculates number of the unique caterogies
+This script calculates number of the unique categories
 """
 
 from collections import Counter

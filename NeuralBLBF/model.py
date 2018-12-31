@@ -5,6 +5,10 @@ import math
 
 
 class EmbedFFNN(nn.Module):
+    """
+        The EmbedFFNN model represents the superclass of all models,
+        containing embedding layers to reduce the input dimensionality
+    """
     def __init__(self, feature_dict, device, embedding_dim, enable_cuda):
         super(EmbedFFNN, self).__init__()
 
@@ -26,6 +30,18 @@ class EmbedFFNN(nn.Module):
 
 
 class SmallEmbedFFNN(EmbedFFNN):
+    """
+         The SmallEmbedFFNN model consist of the following layers
+            - Embedding layers (embedding_dim)
+            - Linear layer (35*embedding_dim -> 512)
+            - Dropout layer (probability p)
+            - ReLU layer
+            - Linear layer (512 -> 256)
+            - Dropout layer (probability p)
+            - ReLU layer
+            - Linear layer (256 -> 1)
+            - Softmax layer
+    """
     def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, dropout, **kwargs):
         super(SmallEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         self.linear1 = nn.Linear(35 * embedding_dim, 512)
@@ -54,10 +70,26 @@ class SmallEmbedFFNN(EmbedFFNN):
         out = F.dropout(self.linear2(out), p=p)
         out = self.relu(out)
         out = self.linear3(out)
+
         return self.softmax(out)
 
 
 class LargeEmbedFFNN(EmbedFFNN):
+    """
+          The LargeEmbedFFNN model consist of the following layers
+             - Embedding layers (embedding_dim)
+             - Linear layer (35*embedding_dim -> 2048)
+             - Dropout layer (probability p)
+             - ReLU layer
+             - Linear layer (2048 -> 1024)
+             - Dropout layer (probability p)
+             - ReLU layer
+             - Linear layer (1024 -> 256)
+             - Dropout layer (probability p)
+             - ReLU layer
+             - Linear layer (256 -> 1)
+             - Softmax layer
+    """
     def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, dropout, **kwargs):
         super(LargeEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         self.linear1 = nn.Linear(35 * embedding_dim, 2048)
@@ -89,10 +121,20 @@ class LargeEmbedFFNN(EmbedFFNN):
         out = F.dropout(self.linear3(out), p=p)
         out = self.relu(out)
         out = self.linear4(out)
+
         return self.softmax(out)
 
 
 class TinyEmbedFFNN(EmbedFFNN):
+    """
+         The TinyEmbedFFNN model consist of the following layers
+            - Embedding layers (embedding_dim)
+            - Linear layer (35*embedding_dim -> 256)
+            - Dropout layer (probability p)
+            - ReLU layer
+            - Linear layer (256 -> 1)
+            - Softmax layer
+    """
     def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, dropout, **kwargs):
         super(TinyEmbedFFNN, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         self.linear1 = nn.Linear(35 * embedding_dim, 256)
@@ -118,74 +160,78 @@ class TinyEmbedFFNN(EmbedFFNN):
         out = F.dropout(self.linear1(out), p=p)
         out = self.relu(out)
         out = self.linear2(out)
+
         return self.softmax(out)
 
 
 class SparseFFNN(nn.Module):
+    """
+         The SparseFFNN model consist of the following layers
+            - Linear layer (n_features -> 32)
+            - ReLU layer
+            - Linear layer (32 -> 1)
+            - Softmax layer
+    """
     def __init__(self, n_features):
         super(SparseFFNN, self).__init__()
 
-        # Embedding layers
-        #self.linear = nn.Linear(n_features, 1,  bias=False)
-        # weights = torch.FloatTensor(n_features, 32)
-        # stdv = 1. / math.sqrt(n_features)
-        # weights.uniform_(-stdv, stdv)
-        # self.linear1 = nn.Parameter(weights)
-        # weights = torch.FloatTensor(32, 1)
-        # stdv = 1. / math.sqrt(32)
-        # weights.uniform_(-stdv, stdv)
-        # self.linear2 = nn.Parameter(weights)
         self.linear1 = nn.Linear(n_features, 32, bias=True)
         self.linear2 = nn.Linear(32, 1, bias=True)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, feature_vector, p=None):
-        # out = torch.spmm(feature_vector, self.linear1)
-        # out = self.relu(out)
-        # out = torch.mm(out, self.linear2)
-        # out = out.unsqueeze(0)
         out = self.linear1(feature_vector)
         out = self.relu(out)
         out = self.linear2(out)
         probability = self.softmax(out)
+
         return probability
 
 
 class SparseLinear(nn.Module):
+    """
+         The SparseLinear model consist of the following layers
+            - Linear layer (n_features -> 1)
+            - Softmax layer
+    """
     def __init__(self, n_features):
         super(SparseLinear, self).__init__()
-        # weights = torch.FloatTensor(n_features, 1)
-        # stdv = 1. / math.sqrt(n_features)
-        # weights.uniform_(-stdv, stdv)
-        # self.linear = nn.Parameter(weights)
+
         self.linear = nn.Linear(n_features, 1, bias=False)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, feature_vector, p=None):
-        # score = torch.spmm(feature_vector, self.linear)
-        # score = score.unsqueeze(0)
         score = self.linear(feature_vector)
         probability = self.softmax(score)
+
         return probability
 
 
 
 class CrossLayer(nn.Module):
+    """
+         The CrossLayer is based on the paper:
+         Deep & Cross Network for Ad Click Predictions by Wang et al. (2017), which explains this structure in detail.
+    """
     def __init__(self, dim):
         super(CrossLayer, self).__init__()
         self.weight = nn.Linear(dim, 1, bias=False)
         self.bias = nn.Linear(dim, 1).bias
 
     def forward(self, x, x_0):
-        
         correlated = self.weight(x)
         correlated.transpose(1, 2)
         x_0 = x_0.unsqueeze(3)
         correlated = torch.einsum('ijkl,ijl->ijk', (x_0, correlated))
+
         return correlated + self.bias + x
 
 class CrossNetwork(EmbedFFNN):
+    """
+         The CrossNetwork model is based on the paper:
+         Deep & Cross Network for Ad Click Predictions by Wang et al. (2017), which explains this structure in detail.
+    """
     def __init__(self, feature_dict, device, embedding_dim, hidden_dim, enable_cuda, **kwargs):
         super(CrossNetwork, self).__init__(feature_dict, device, embedding_dim, enable_cuda)
         
@@ -224,5 +270,6 @@ class CrossNetwork(EmbedFFNN):
         x_dnn = self.relu(self.dnn_layer3(x))
 
         out = self.final_layer(torch.cat((x_cross, x_dnn), dim=2))
+
         return self.softmax(out)
 
