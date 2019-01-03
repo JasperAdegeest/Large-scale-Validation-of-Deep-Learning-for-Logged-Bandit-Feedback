@@ -14,6 +14,9 @@ from collections import defaultdict
 
 
 def get_start_stop_idx(filename):
+    """
+        returns the start and stop index for the filename
+    """
     for part in filename.split("_"):
         if "-" in part:
             [start_idx, stop_idx] = part.split("-")
@@ -21,7 +24,10 @@ def get_start_stop_idx(filename):
 
 
 class Sample():
-    """Sample representing banner with one slot."""
+    """
+        A class representing a banner with one slot
+        The products of the candidate pool, propensities and clicks are assigned
+    """
     def __init__(self):
 
         # Start with empty product list
@@ -33,6 +39,10 @@ class Sample():
         self.propensity = None
 
     def done(self, sparse, feature_dict=None):
+        """
+            Method that parses the data into it propensity, click and features
+        """
+
         # Summary vec will be reused for all product vecs
         summary = self.summary.split("|")[-1]
 
@@ -67,11 +77,16 @@ class Sample():
 
 
     def features_to_vector(self, features, feature_dict):
+        """
+            Splits the string and returns the numerical and categorical features
+        """
         vector = [0] * 35
         for feature in features.split():
+            # numerical features
             if ":" in feature and not "_" in feature:
                 [feature_name, value] = feature.split(":")
                 vector[int(feature_name)-1] = int(value)
+            # categorical features
             if "_" in feature:
                 [feature_name, value] = feature.split("_")
                 if ":" in value: value = value.split(":")[0]
@@ -81,14 +96,19 @@ class Sample():
         return vector
 
     def features_to_vector_sparse(self, features, feature_dict, index):
+        """
+            Splits the string and return its features in a sparse vector
+        """
         indices = []
         values = []
         for feature in features.split():
+            #numerical featues
             if ":" in feature:
                 [feature, value] = feature.split(":")
                 if feature in feature_dict:
                     indices.append(feature_dict[feature])
                     values.append(int(value))
+            # categorical features
             else:
                 if feature in feature_dict:
                     indices.append(feature_dict[feature])
@@ -103,6 +123,9 @@ class Sample():
         return to_string
 
     def get_category_index(self, feature, category, feature_dict):
+        """
+            returns the index of the category
+        """
         if str(category) in feature_dict[str(feature)]:
             return feature_dict[str(feature)][str(category)]
         else:
@@ -110,6 +133,9 @@ class Sample():
 
 
 class BatchIterator():
+    """
+        Iterator for the batches of products used by the neural networks
+    """
     def __init__(self, dataset, batch_size, enable_cuda, sparse=False, device=None):
         self.dataset = dataset
         self.sorted_per_pool_size = defaultdict(list)
@@ -122,17 +148,6 @@ class BatchIterator():
         self.device = device
 
     def __iter__(self):
-        # if self.sparse:
-        #     for sample in self.dataset:
-        #         products = sample.products
-        #         clicks = torch.FloatTensor([sample.click])
-        #         propensities = torch.FloatTensor([sample.propensity])
-        #         if self.enable_cuda:
-        #             products = products.to(self.device)
-        #             clicks = clicks.to(self.device)
-        #             propensities = propensities.to(self.device)
-        #         yield torch.autograd.Variable(products), clicks, propensities
-        # else:
         keys = list(self.sorted_per_pool_size.keys())
         random.shuffle(keys)
         for pool_size in keys:
@@ -158,15 +173,18 @@ class BatchIterator():
 
 
 class CriteoDataset(Dataset):
-    """Criteo dataset."""
+    """
+        A class representing the Criteo dataset
+        Loads in the data and stores it as a list of Samples
+
+        Args:
+            filename (string): Path to the criteo dataset filename
+            stop_idx (int): only processes lines up untill here
+            start_idx (int): only processes lines starting from here
+    """
 
     def __init__(self, filename, features_dict, stop_idx=10000000, start_idx=0,
                  sparse=False, save=False):
-        """
-        Args:
-            filename (string): Path to the criteo dataset filename.
-            stop_idx (int): only process this many lines from the file.
-        """
 
         self.samples = []
         self.save = save
@@ -176,6 +194,11 @@ class CriteoDataset(Dataset):
 
 
     def load(self, filename, stop_idx, start_idx, sparse):
+        """
+            loads in the data from and up to a given line index
+            Uses the dataset file or a pre-made sample file
+        """
+        # name of the pre-made file
         if sparse:
             pickle_file = '{}_{}-{}_sparse.pickle'.format(filename, start_idx, stop_idx)
         else:
@@ -188,13 +211,11 @@ class CriteoDataset(Dataset):
         else:
             with open(filename) as f:
                 for i, line in enumerate(f):
-                    #if i % 50000 == 0: print(i)
                     line = line.strip()
                     # Start after certain index
                     if start_idx != -1 and i < start_idx: continue
                     # Stop before certain index
                     if stop_idx != -1 and i >= stop_idx: break
-                    # Line break
                     if not line: continue
 
                     # Start of new sample
