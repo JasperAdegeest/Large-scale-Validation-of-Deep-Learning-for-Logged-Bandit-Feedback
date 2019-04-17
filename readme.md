@@ -1,5 +1,9 @@
 # Large-scale Validation of Deep Learning for Logged Bandit Feedback
 
+## Paper
+
+The paper of this reseach can be found in the main folder of the repository.
+
 ## Data
 
 Our experiments are conducted on the Criteo dataset, which can be obtained via (http://www.cs.cornell.edu/~adith/Criteo/).
